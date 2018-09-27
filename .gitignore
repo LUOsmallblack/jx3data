@@ -26,6 +26,9 @@ db/*
 !db/cache
 db/cache/*
 !db/cache/redis.conf
+!db/executor
+db/executor/*
+!db/executor/spark-env.sh
 config/secret.exs
 rel/secret.cookie
 log
@@ -33,3 +36,11 @@ priv/repo/migrations/*_fix.exs
 *.flows
 mix.lock
 *.bak
+vendor
+
+/build.sbt
+/target/
+/project/
+.idea
+.ipynb_checkpoints
+*.iml
