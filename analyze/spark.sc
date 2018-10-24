@@ -31,4 +31,10 @@ val opts = Map(
 val df = spark.read.format("jdbc").options(opts).load
 
 //df.explain
+import org.apache.spark.sql.functions._
 df.groupBy("grade").count.sort("count").show()
+df.groupBy("grade").
+  agg(
+    count("match_id").alias("count"),
+    bround(avg("duration"), 2).alias("duration")).
+  sort("grade").show()
