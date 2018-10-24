@@ -10,16 +10,27 @@ defmodule Jx3App.Crawler do
   def save_performance(%Model.Role{} = r, perf) do
     perf |> Enum.map(fn i ->
       match_type = i[:match_type]
-      with %{} = i <- Map.get(i, :performance),
-        i <- i |> Map.put(:match_type, match_type) |> Map.put(:role_id, Map.get(r,:global_id)),
-        true <- i[:score] != nil,
-        {:ok, i} <- i |> Model.Query.update_performance
+      with %{} = p <- Map.get(i, :performance),
+        p <- p |> Map.put(:match_type, match_type) |> Map.put(:role_id, Map.get(r, :global_id)),
+        true <- p[:score] != nil,
+        {:ok, p} <- p |> Model.Query.update_performance
       do
-        i
+        {p, Map.get(i, :metrics)}
       else
         _ -> nil
       end
     end) |> Enum.filter(&(&1!=nil))
+  end
+
+  def save_skills(s, m, p) do
+    Utils.combine_with(m, s, :kungfu) |> Enum.map(fn {_, v} ->
+      case v do
+        %{role_id: _} -> Model.Query.update_kungfus(v)
+        %{total_count: 0} -> nil
+        _ -> %{role_id: Map.get(p, :role_id), match_type: Map.get(p, :match_type)} |> Enum.into(v)
+          |> Model.Query.update_kungfus
+      end
+    end)
   end
 
   def save_role(a, o \\ nil)
@@ -112,9 +123,17 @@ defmodule Jx3App.Crawler do
   end
 
   def indicator(%{role_id: role_id, zone: zone, server: server} = r) do
-    r1 = api({:role_info, role_id, zone, server})
+    api({:role_info, role_id, zone, server}) |> do_indicator(r)
+  end
+
+  def do_indicator(r1, r) do
     result = save_role(r1, r)
-    Map.put(result, :performances, save_performance(result, r1[:indicator]))
+    perfs = save_performance(result, r1[:indicator])
+    |> Enum.map(fn {p, m} ->
+      api({:role_kungfus, Map.get(p, :match_type), Map.get(p, :role_id)}) |> save_skills(m, p)
+      p
+    end)
+    Map.put(result, :performances, perfs)
   end
 
   def person(%{person_id: person_id}) do
@@ -152,17 +171,18 @@ defmodule Jx3App.Crawler do
       _ -> nil
     end
     performances = indicators[:indicator] || []
-    {count, new_rank} =
+    {fetched_to, count, new_rank} =
       case performances |> Enum.filter(fn p -> p[:match_type] == match_type end) do
         [%{performance: new_perf}] ->
-          count = case {new_perf[:total_count], Map.get(perf, :total_count)} do
-            {nil, _} -> nil
-            {_, nil} -> nil
-            {x, y} -> x - y
-          end
+          {fetched_to, count} =
+            case {new_perf[:total_count], Map.get(perf, :fetched_to) || Map.get(perf, :total_count)} do
+              {nil, y} -> {y, nil}
+              {x, nil} -> {x, nil}
+              {x, y} -> {x, x - y}
+            end
           ranking = new_perf[:ranking]
-          {count, ranking}
-        _ -> {nil, nil}
+          {fetched_to, count, ranking}
+        _ -> {Map.get(perf, :fetched_to), nil, nil}
       end
     count = case count do
       nil -> nil
@@ -180,9 +200,8 @@ defmodule Jx3App.Crawler do
       Logger.error("limit should not be null #{performances |> Enum.map(& &1[:type]) |> inspect}\n" <> inspect(indicators))
     end
     history = matches(match_type, role, limit) || []
-    save_role(indicators, role)
-    save_performance(role, indicators[:indicator])
-    new_perf = %{role_id: global_id, match_type: match_type, fetch_at: NaiveDateTime.utc_now}
+    do_indicator(indicators, role)
+    new_perf = %{role_id: global_id, match_type: match_type, fetched_to: fetched_to, fetched_at: NaiveDateTime.utc_now}
     new_perf =
       case history |> Enum.drop_while(fn %Model.Match{} -> false; _ -> true end) do
         [%Model.Match{} = h | _] ->
@@ -200,7 +219,7 @@ defmodule Jx3App.Crawler do
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, %{match_type: match_type, ranking: ranking, fetch_at: last} = perf) do
+  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_at: last} = perf) do
     cond do
       ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, limit: 100)
       last == nil -> do_fetch(role, match_type, %{ranking: ranking}, limit: 20)

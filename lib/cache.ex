@@ -444,7 +444,7 @@ defmodule Jx3App.Cache do
   end
 
   def count_query(:fetched) do
-    Repo.aggregate(from(r in RolePerformance, where: not is_nil(r.fetch_at)), :count, :role_id)
+    Repo.aggregate(from(r in RolePerformance, where: not is_nil(r.fetched_at)), :count, :role_id)
   end
 
   def count_query({:role_matches, role_id}) do

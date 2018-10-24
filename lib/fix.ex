@@ -48,7 +48,7 @@ defmodule Jx3App.Model.Fix do
 
   def fix_match_grade do
     Model.Query.get_roles
-    |> Enum.filter(fn {_, r} -> r.fetch_at != nil end)
+    |> Enum.filter(fn {_, r} -> r.fetched_at != nil end)
     |> Enum.map(fn {r, _} -> r.global_id end)
     |> fix_match_grade_for_roles
 

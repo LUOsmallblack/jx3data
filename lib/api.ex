@@ -183,6 +183,27 @@ defmodule Jx3App.API do
     post("https://m.pvp.xoyo.com/mine/match/person-history", %{personId: person_id, cursor: cursor, size: size}, token)
   end
 
+  def handle(:role_kungfus, {match_type, global_id}, token) do
+    {:ok, d} = post("https://m.pvp.xoyo.com/#{match_type}/mine/performance/kungfu", %{global_role_id: global_id}, token)
+    if d do
+      d |> Enum.map(fn d -> %{
+        role_id: global_id,
+        match_type: match_type,
+        kungfu: d["name"],
+        skills: (d["skills"] || []) |> Enum.map(fn s ->
+          %{
+            icon: Utils.icon_url_trim(s["icon"]),
+            name: s["name"],
+            accuracy: s["accuracy"] && s["success_times"] || nil,
+            times: s["times"],
+          }
+        end)
+      } end)
+    else
+      []
+    end
+  end
+
   def handle(:role_info, {match_type, global_id}, _token) do
     {:ok, d} = post("https://m.pvp.xoyo.com/#{match_type}/mine/arena/find-role-gid", %{globalId: global_id})
     p = d["personInfo"]
@@ -241,20 +262,20 @@ defmodule Jx3App.API do
           %{
             match_type: Map.get(i, "type"),
             metrics: (Map.get(i, "metrics") || []) |> Enum.map(fn t ->
-              {Map.get(t, "kungfu"), %{
+              %{
                 kungfu: Map.get(t, "kungfu"),
                 mvp_count: Map.get(t, "mvp_count"),
                 total_count: Map.get(t, "total_count"),
                 win_count: Map.get(t, "win_count"),
-                items: (Map.get(t, "items") || []) |> Enum.map(fn i ->
-                  {Map.get(i, "name"), %{
+                metrics: (Map.get(t, "items") || []) |> Enum.map(fn i ->
+                  %{
                     grade: Map.get(i, "grade"),
                     name: Map.get(i, "name"),
                     value: Map.get(i, "value"),
                     ranking: Map.get(i, "ranking"),
-                  }}
+                  }
                 end),
-              }}
+              }
             end),
             performance: Map.get(i, "performance") && %{
               grade: Map.get(i, "performance") |> Map.get("grade"),

@@ -78,6 +78,18 @@ defmodule Jx3App.Utils do
     end
   end
 
+  def combine_with(l1, l2, k) do
+    l2 = Enum.map(l2, fn i -> {Map.get(i, k), i} end) |> Enum.into(%{})
+    Enum.map(l1, fn i ->
+      kk = Map.get(i, k)
+      i = case Map.get(l2, kk) do
+        nil -> i
+        j -> Enum.into(i, j)
+      end
+      {kk, i}
+    end) |> Enum.into(l2)
+  end
+
   def count_word(l) do
     Enum.reduce(l, %{}, fn i, acc -> Map.update(acc, i, 1, &(&1 + 1)) end)
   end

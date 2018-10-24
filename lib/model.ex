@@ -1,5 +1,5 @@
 defmodule Jx3App.Model do
-  alias Jx3App.Model.{Item, Person, Role, RoleLog, RolePerformance, RolePerformanceLog, Match, MatchRole, MatchLog}
+  alias Jx3App.Model.{Item, Person, Role, RoleLog, RolePerformance, RoleKungfu, RolePerformanceLog, Match, MatchRole, MatchLog}
 
   defmodule Repo do
     use Ecto.Repo, otp_app: :jx3app
@@ -154,6 +154,14 @@ defmodule Jx3App.Model do
         %RolePerformanceLog{} |> RolePerformanceLog.changeset(perf) |> Repo.insert
       end
       p
+    end
+
+    def update_kungfus(%{role_id: id, match_type: mt, kungfu: kungfu} = perf) do
+      case Repo.get_by(RoleKungfu, [role_id: id, match_type: mt, kungfu: kungfu]) do
+        nil -> %RoleKungfu{role_id: id, match_type: mt, kungfu: kungfu}
+        p -> p
+      end
+      |> RoleKungfu.changeset(perf) |> Repo.insert_or_update
     end
 
     def insert_match(%{match_type: match_type, match_id: id, roles: roles} = match) do
