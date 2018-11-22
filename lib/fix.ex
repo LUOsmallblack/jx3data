@@ -70,7 +70,7 @@ defmodule Jx3App.Model.Fix do
 
   def fix_date_range(dr) do
     combine = fn y, x ->
-      case Ecto.Date.compare(x.upper, y.upper) do
+      case Date.compare(x.upper, y.upper) do
         :lt -> y
         :gt -> %{y | upper: x.upper, upper_inclusive: x.upper_inclusive}
         :eq -> %{y | upper_inclusive: x.upper_inlcusive || y.upper_inclusive}

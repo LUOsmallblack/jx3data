@@ -37,9 +37,7 @@ config :logger, :error_log,
   level: :error,
   path: "log/elixir.log"
 
-config :jx3app, Jx3App.Model.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  loggers: [{Jx3App.Model.Repo.LogEntry, :log, []}]
+config :jx3app, Jx3App.Model.Repo, []
 
 config :jx3app,
   ecto_repos: [Jx3App.Model.Repo]

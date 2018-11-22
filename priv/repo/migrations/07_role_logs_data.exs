@@ -1,11 +1,11 @@
 defmodule Model.Repo.Migrations.TransferRolePassportData do
   use Ecto.Migration
-  require Logger
   import Ecto.Query
+  alias Jx3App.Model
+  require Logger
 
   defmodule RolePassportLog do
     use Ecto.Schema
-    import Ecto.Changeset
 
     schema "role_passport_logs" do
       field :global_id, :string

@@ -15,18 +15,8 @@ defmodule Jx3App.Model.RoleLog do
 
   @permitted ~w(role_id global_id name zone server seen)a
 
-  def diff_date(%Ecto.Date{} = d1, %Ecto.Date{} = d2) do
-    {:ok, d1} = d1 |> Ecto.Date.to_erl |> Date.from_erl
-    {:ok, d2} = d2 |> Ecto.Date.to_erl |> Date.from_erl
-    diff_date(d1, d2)
-  end
   def diff_date(%Date{} = d1, %Date{} = d2) do
     Date.diff(d1, d2)
-  end
-  def diff_date(d1, d2) do
-    {:ok, d1} = Ecto.Date.cast(d1)
-    {:ok, d2} = Ecto.Date.cast(d2)
-    diff_date(d1, d2)
   end
 
   def insert_seen(nil, [], acc) do
@@ -69,13 +59,9 @@ defmodule Jx3App.Model.RoleLog do
 
   def insert_seen(seen, a) do
     a = a || []
-    case Ecto.Date.cast(seen) do
-      {:ok, s} ->
-        cond do
-          Enum.any?(a, &DateRangeType.in?(&1, s)) -> a
-          true -> insert_seen({s, nil, nil}, a, [])
-        end
-      _ -> a
+    cond do
+      Enum.any?(a, &DateRangeType.in?(&1, seen)) -> a
+      true -> insert_seen({seen, nil, nil}, a, [])
     end
   end
 

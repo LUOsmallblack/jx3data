@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.FixMatchSchema do
+defmodule Model.Repo.Migrations.FixPvpType do
   use Ecto.Migration
 
   def change do

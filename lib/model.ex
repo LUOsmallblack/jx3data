@@ -2,16 +2,9 @@ defmodule Jx3App.Model do
   alias Jx3App.Model.{Item, Person, Role, RoleLog, RolePerformance, RoleKungfu, RolePerformanceLog, Match, MatchRole, MatchLog}
 
   defmodule Repo do
-    use Ecto.Repo, otp_app: :jx3app
-
-    defmodule LogEntry do
-      def log(%{query: query} = entry) do
-        cond do
-          query =~ ~r/^SELECT .* FROM "(items|matches)" AS .*/ -> entry
-          true -> Ecto.LogEntry.log(entry)
-        end
-      end
-    end
+    use Ecto.Repo,
+      otp_app: :jx3app,
+      adapter: Ecto.Adapters.Postgres
   end
 
   defmodule AnyType do
@@ -24,7 +17,7 @@ defmodule Jx3App.Model do
   defmodule DateRangeType do
     @behaviour Ecto.Type
     def type, do: :daterange
-    def load(%Postgrex.Range{} = range), do: apply_range(range, &Ecto.Date.load/1)
+    def load(%Postgrex.Range{} = range), do: {:ok, range}
     def load(_), do: :error
     def cast([lower, upper], opts) do
       lower_inclusive = case opts[:upper_inclusive] do
@@ -34,26 +27,19 @@ defmodule Jx3App.Model do
       upper_inclusive = opts[:upper_inclusive] || false
       cast(%Postgrex.Range{lower: lower, lower_inclusive: lower_inclusive, upper: upper, upper_inclusive: upper_inclusive})
     end
-    def cast(%Postgrex.Range{} = range), do: apply_range(range, &Ecto.Date.cast/1)
+    def cast(%Postgrex.Range{} = range), do: {:ok, range}
     def cast([lower, upper]), do: cast([lower, upper], [])
     def cast(_), do: :error
-    def dump(%Postgrex.Range{} = range), do: apply_range(range, &Ecto.Date.dump/1)
+    def dump(%Postgrex.Range{} = range), do: {:ok, range}
     def dump(_), do: :error
-    def apply_range(%Postgrex.Range{lower: lower, upper: upper} = range, func) do
-      func = fn nil -> {:ok, nil}; x -> func.(x) end
-      case {func.(lower), func.(upper)} do
-        {{:ok, lower}, {:ok, upper}} -> {:ok, %{range | lower: lower, upper: upper}}
-        _ -> :error
-      end
-    end
 
-    def in?(%Postgrex.Range{} = r, %Ecto.Date{} = i) do
+    def in?(%Postgrex.Range{} = r, %Date{} = i) do
       {:ok, r} = cast(r)
       cond do
-        r.lower != nil and Ecto.Date.compare(i, r.lower) == :lt -> false
-        r.lower != nil and r.lower_inclusive == false and Ecto.Date.compare(i, r.lower) == :eq -> false
-        r.upper != nil and r.upper_inclusive != true and Ecto.Date.compare(i, r.upper) == :eq -> false
-        r.upper != nil and Ecto.Date.compare(i, r.upper) == :eq -> false
+        r.lower != nil and Date.compare(i, r.lower) == :lt -> false
+        r.lower != nil and r.lower_inclusive == false and Date.compare(i, r.lower) == :eq -> false
+        r.upper != nil and r.upper_inclusive != true and Date.compare(i, r.upper) == :eq -> false
+        r.upper != nil and Date.compare(i, r.upper) == :eq -> false
         true -> true
       end
     end
@@ -63,9 +49,9 @@ defmodule Jx3App.Model do
     def compare(x, y) when is_boolean(x) and is_boolean(y) and x == y, do: :eq
     def compare(r1, r2) do
       r = [
-        Ecto.Date.compare(r1.lower, r2.lower),
+        Date.compare(r1.lower, r2.lower),
         compare(r2.lower_inclusive, r1.lower_inclusive),
-        Ecto.Date.compare(r1.upper, r2.upper),
+        Date.compare(r1.upper, r2.upper),
         compare(r2.upper_inclusive, r1.upper_inclusive),
       ] |> Enum.filter(&:eq != &1)
       case r do

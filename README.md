@@ -8,10 +8,10 @@ createdb jx3app
 ```
 You should add
 ```elixir
-config :jx3app, Model.Repo,
+config :jx3app, Jx3App.Model.Repo,
   database: "jx3app",
   hostname: "localhost",
-  port: 5432
+  port: 5733
 ```
 to your `config/secret.exs`
 
@@ -24,7 +24,7 @@ at the top of `config/secret.exs`
 ## Prepare JX3 account
 Add to your `config/secret.exs`
 ```elixir
-config :jx3app, API,
+config :jx3app, Jx3App.API,
   username: "username",
   password: "password"
 ```
@@ -38,8 +38,10 @@ mix deps.get
 mix ecto.migrate
 # test
 mix test
+# release
+MIX_ENV=prod mix release
 # run
-MIX_ENV=prod mix run --no-halt
+_build/prod/rel/jx3app/bin/jx3app start
 ```
 
 ## Useful commands
@@ -59,6 +61,6 @@ MIX_ENV=prod mix run --no-halt
     ```shell
     redis-server cache/redis.conf
     redis-cli -p 5734
-    redis-cli -p 5734 flushdb
+    # redis-cli -p 5734 flushdb
     redis-cli -p 5734 shutdown
     ```
