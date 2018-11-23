@@ -8,7 +8,8 @@ for x in readdir("jars")
 end
 Spark.init()
 #%%
-spark = SparkSession(master="local")
+spark = SparkSession(master="spark://clouds-sp:7077")
+# spark = SparkSession(master="local")
 sc = Spark.context(spark)
 Spark.add_jar(sc, "jars/postgresql-42.2.5.jar")
 
@@ -21,11 +22,23 @@ download_jar("org.postgresql:postgresql:42.2.5")
 # nums = parallelize(sc, [1, 2, 3, 0, 4, 0])
 # rdd = flat_map(nums, it -> fill(it, it))
 # reduce(rdd, +)
+#%%
 opts(table) = Dict(
-    "url" => "jdbc:postgresql://localhost:5733/jx3app",
+    "url" => "jdbc:postgresql://localhost:5733/j3",
     "dbtable" => table,
     "driver" => "org.postgresql.Driver"
 )
-read_df(spark; format="jdbc", options=opts("match_3c.matches"))
+matches = read_df(spark; format="jdbc", options=opts("match_3c.matches"))
+
+#%%
+include("utils.jl")
+
+#%%
+grade_count = @spark(matches.groupBy(["grade"]...).count().sort(("count",)...).toJSON().take(200)) |> parse_json
+
+#%%
+using Plots, StatPlots
+StatPlots.@df grade_count bar(:grade, :count)
+
 #%%
 close(spark)
