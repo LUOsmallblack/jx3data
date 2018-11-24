@@ -1,5 +1,6 @@
 using JavaCall, JSON, DataFrames
 
+convertible(::Type{JavaObject{T}}, ::Type{JavaObject{S}}) where {T, S} = JavaCall.isConvertible(T, S)
 convertible(javatype::Type, juliatype::Type) = hasmethod(convert, Tuple{Type{javatype}, juliatype})
 
 function jtypeforclass(cls::JClass)
@@ -35,6 +36,7 @@ function _narrow(obj::JavaObject)
     return convert(jtypeforclass(c), obj)
 end
 _narrow(obj::JavaCall.jprimitive) = obj
+_narrow(::Nothing) = nothing
 
 function findmethod(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
     allmethods = listmethods(obj, name)
@@ -60,7 +62,7 @@ function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractSt
     matchmethod = matchmethods[1]
     rettype = jtypeforclass(getreturntype(matchmethod))
     argstype = tuple(map(jtypeforclass, getparametertypes(matchmethod))...)
-    # println("type: $rettype ($argstype)")
+    # println("type: $rettype $name$argstype")
     return jcall(obj, name, rettype, argstype, args...)
 end
 
@@ -82,6 +84,34 @@ function parse_json(result::Array{JString})
     end
     return df
 end
+function dump_json(result::DataFrame)
+    data = [Dict(collect(pairs(row))) for row in eachrow(kungfu_cn_df)]
+    map(data) do row
+        JSON.json(row)
+    end
+end
+
+function macro_javacall(trans_term, trans_call, expr)
+    function change(expr::Expr)
+        if expr.head == :call
+            func = expr.args[1]
+            args = expr.args[2:end]
+            if isa(func, Expr) && func.head == :.
+                @assert length(func.args) == 2
+                base = change(func.args[1])
+                quoted = func.args[2]
+                @assert isa(quoted, QuoteNode)
+                return trans_call(base, quoted.value, args)
+            end
+        end
+        trans_term(expr)
+    end
+    change(expr) = trans_term(expr)
+    @show :(_narrow($(esc(change(expr)))))
+end
+
+try_wrap(x) = x
+try_wrap(x::Spark.JDataset) = Dataset(x)
 
 macro spark(expr)
     function apply_args(args)
@@ -102,25 +132,59 @@ macro spark(expr)
         end
         return args
     end
-    function change(expr::Expr)
-        if expr.head == :call
-            func = expr.args[1]
-            args = apply_args(expr.args[2:end])
-            if isa(func, Expr) && func.head == :.
-                @assert length(func.args) == 2
-                base = change(func.args[1])
-                quoted = func.args[2]
-                @assert isa(quoted, QuoteNode)
-                if isa(args, Array)
-                    return :(jdcall($base, $(string(quoted.value)), $(args...)))
-                else
-                    return :(jdcall($base, $(string(quoted.value)), $(args)...))
-                end
-            end
+    trans_term(expr::Symbol) = :($(expr).jdf)
+    function trans_call(base, method, args)
+        args = apply_args(args)
+        if isa(args, Array)
+            :(jdcall($(base), $(string(method)), $(args...)))
+        else
+            :(jdcall($(base), $(string(method)), $(args)...))
         end
     end
-    function change(expr::Symbol)
-        :($(expr).jdf)
+    :(try_wrap($(macro_javacall(trans_term, trans_call, expr))))
+end
+
+functions = @jimport org.apache.spark.sql.functions
+function try_call(base, method, args...)
+    try
+        jdcall(base, method, args...)
+    catch
+        jdcall(functions, method, base, args...)
     end
-    return :(_narrow($(change(expr))))
+end
+
+macro col(expr)
+    trans_term(expr::Symbol) = :(jdcall(functions, "col", $(string(expr))))
+    function trans_term(expr::Expr)
+        if expr.head == :call
+            func = expr.args[1]
+            args = expr.args[2:end]
+            return :(jdcall(functions, $(string(func)), $(args...)))
+        end
+        expr
+    end
+    trans_call(base, method, args) = :(try_call($(base), $(string(method)), $(args...)))
+    macro_javacall(trans_term, trans_call, expr)
+end
+
+#%%
+import Base.convert
+JInteger = @jimport java.lang.Integer
+JIterable = @jimport java.lang.Iterable
+JList = @jimport java.util.List
+JArray = @jimport java.util.Array
+JArrays = @jimport java.util.Arrays
+JSeq = @jimport scala.collection.Seq
+JConverters = @jimport scala.collection.JavaConverters
+JAsScala = @jimport scala.collection.convert.Decorators$AsScala
+JScalaIterable = @jimport scala.collection.Iterable
+function convert(::Type{JSeq}, obj::S) where S <: Union{JList, JArray}
+    jasscala = jcall(JConverters, "iterableAsScalaIterableConverter", JAsScala, (JIterable,), obj)
+    jscala = jcall(jasscala, "asScala", JObject, ()) |> _narrow
+    jcall(jscala, "toSeq", JSeq, ())
+end
+
+function seq(a...)
+    list = jdcall(JArrays, "asList", collect(a))
+    convert(JSeq, list)
 end
