@@ -52,8 +52,14 @@ kungfu_items = @spark(kungfu_items.toJSON().take(200)) |> parse_json
 kungfu_items[:content] = Symbol.(kungfu_items[:content])
 sort!(kungfu_items, :content; lt=kungfu_isless)
 kungfu_items
+
 #%%
 using Plots, StatPlots
+import PyCall
+PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.sans-serif"] = ["Source Han Serif CN"]
+pyplot()
+# PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.family"] = ["sans-serif"]
+# RecipesBase.debug()
 grade_count = @spark(matches.groupBy(["grade"]...).count().sort(("count",)...).toJSON().take(200)) |> parse_json
 StatPlots.@df grade_count bar(:grade, :count)
 
@@ -72,8 +78,44 @@ kungfus_13_count = parse_json(@spark kungfus_13.groupBy(["kungfu"]...).agg([
 
 show_kungfus(xs) = join(sort(kungfu_items[[findfirst(x .== kungfu_items[:id]) for x in xs],:], :content; lt=kungfu_isless)[:short])
 kungfus_13_count[:short] = show_kungfus.(kungfus_13_count[:kungfu])
-kungfus_13_count
+kungfus_13_count[:rate] = kungfus_13_count[:won]./kungfus_13_count[:count]
+sort(kungfus_13_count, :rate)
+# @df kungfus_13_count bar(:short, :count; orientation=:horizontal)
+@df kungfus_13_count scatter(:won, :count; scale=:log10)
+@df sort(kungfus_13_count, :rate) scatter(:count, :rate; xscale=:log10)
+@show filter(r->10021 ∈ r[:kungfu], sort(kungfus_13_count, :rate; rev=true))[[:short, :won, :count, :rate]]
 
+#%%
+function kungfu_weight(x)
+    role_filtered = @spark scores.filter(@col match_type.equalTo("3c")).filter(@col score.gt(int_obj(x))).join(@spark(role_kungfus.withColumnRenamed("total_count", "kungfu_count")).jdf, seq("role_id", "match_type"))
+    kungfu_weight = @spark role_filtered.select(["role_id", "kungfu", "kungfu_count", "total_count"]...).withColumn("kungfu_weight", @col kungfu_count.divide(@col(total_count))).
+        groupBy(["kungfu"]...).agg([@col(kungfu_weight.sum().alias("weight")), @col(kungfu_count.sum().alias("count"))]...).sort([@col weight.desc()])
+    kungfu_weight = parse_json(@spark(kungfu_weight.toJSON().take(200)))
+    kungfu_weight = rename(kungfu_weight, :kungfu => :kungfu_en)
+    kungfu_weight[:kungfu_en] = Symbol.(kungfu_weight[:kungfu_en])
+    kungfu_weight = join(kungfu_weight, kungfu_items; on=:kungfu_en => :content, kind=:left)
+    delete!(kungfu_weight, :short)
+    kungfu_weight[:avg_count] = kungfu_weight[:count]./kungfu_weight[:weight]
+    kungfu_weight
+end
+#%%
+kungfu_weight_2400 = kungfu_weight(2400)
+@show kungfu_weight_2400[[:kungfu, :weight, :count, :avg_count]]
+@df kungfu_weight_2400 bar(string.(:kungfu), :weight; ticks=:all)
+# @df kungfu_2400_weight bar(string.(:kungfu), :avg_count; ticks=:all)
+#%%
+macro kungfu_weight(x)
+    kw = Symbol("kungfu_weight_$x")
+    expr = :($kw = kungfu_weight($x);
+        @show $kw[[:kungfu, :weight, :count, :avg_count]];
+        @df $kw bar(string.(:kungfu), :weight; ticks=:all);
+        # @df $kw bar(string.(:kungfu), :avg_count; ticks=:all))
+        )
+    @show :($(esc(expr)))
+end
+
+@kungfu_weight(2500)
+@kungfu_weight(2600)
 
 #%%
 close(spark)

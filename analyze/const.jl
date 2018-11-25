@@ -1,3 +1,5 @@
+using DataFrames
+
 kungfu_cn_map = Dict(
     :xisui => ("洗髓", "洗"),
     :yijin => ("易经", "秃"),
@@ -23,6 +25,8 @@ kungfu_cn_map = Dict(
     :xiangzhi => ("相知", "歌"),
     :beiao => ("北傲", "霸"))
 kungfu_cn_df = DataFrame(vcat([[i v1 v2] for (i, (v1, v2)) in kungfu_cn_map]...), [:content, :kungfu, :short])
+
+using JavaCall
 
 JArrays = @jimport java.util.Arrays
 JList = @jimport java.util.List
