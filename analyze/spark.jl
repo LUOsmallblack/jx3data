@@ -55,10 +55,10 @@ kungfu_items
 
 #%%
 using Plots, StatPlots
-import PyCall
-PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.sans-serif"] = ["Source Han Serif CN"]
-pyplot()
+# import PyCall
 # PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.family"] = ["sans-serif"]
+# PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.sans-serif"] = ["Source Han Serif CN"]
+pyplot(xtickfont=font(8, "Source Han Serif CN"))
 # RecipesBase.debug()
 grade_count = @spark(matches.groupBy(["grade"]...).count().sort(("count",)...).toJSON().take(200)) |> parse_json
 StatPlots.@df grade_count bar(:grade, :count)
@@ -82,8 +82,8 @@ kungfus_13_count[:rate] = kungfus_13_count[:won]./kungfus_13_count[:count]
 sort(kungfus_13_count, :rate)
 # @df kungfus_13_count bar(:short, :count; orientation=:horizontal)
 @df kungfus_13_count scatter(:won, :count; scale=:log10)
-@df sort(kungfus_13_count, :rate) scatter(:count, :rate; xscale=:log10)
 @show filter(r->10021 ∈ r[:kungfu], sort(kungfus_13_count, :rate; rev=true))[[:short, :won, :count, :rate]]
+@df sort(kungfus_13_count, :rate) scatter(:count, :rate; xscale=:log10)
 
 #%%
 function kungfu_weight(x)
