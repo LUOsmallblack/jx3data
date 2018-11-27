@@ -1,7 +1,10 @@
 using JavaCall, JSON, DataFrames
 
 convertible(::Type{JavaObject{T}}, ::Type{JavaObject{S}}) where {T, S} = JavaCall.isConvertible(T, S)
-convertible(javatype::Type, juliatype::Type) = hasmethod(convert, Tuple{Type{javatype}, juliatype})
+convertible(::Type{T}, juliatype::Type) where T <: JavaCall.jprimitive = juliatype == T
+convertible(javatype::Type{JavaObject{T}}, juliatype::Type{S}) where {T, S} = hasmethod(convert, Tuple{Type{javatype}, juliatype})
+convertible(javatype::Type{Array{JavaObject{T}, 1}}, juliatype::Type{Array{S, 1}}) where {T, S} = convertible(JavaObject{T}, S)
+convertible(javatype::Type{Array{JavaObject{T}, 1}}, juliatype::Type{Array{Any, 0}}) where T = true
 
 function jtypeforclass(cls::JClass)
     isarray(cls) = jcall(cls, "isArray", jboolean, ()) != 0x00
@@ -38,6 +41,10 @@ end
 _narrow(obj::JavaCall.jprimitive) = obj
 _narrow(::Nothing) = nothing
 
+int_obj(x) = convert(JObject, JInteger((jint,), x))
+bool_obj(x) = convert(JObject, JavaObject{Symbol("java.lang.Boolean")}((jboolean,), x))
+
+typeof_fixemptyarray(a) = isa(a, Union{Array{Any}, Array{Union{}}}) && isempty(a) ? Array{Any, 0} : typeof(a)
 function findmethod(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
     allmethods = listmethods(obj, name)
     filter(allmethods) do m
@@ -45,11 +52,19 @@ function findmethod(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::Abstra
         if length(params) != length(args)
             return false
         end
-        all([convertible(jtypeforclass(c), typeof(a)) for (c, a) in zip(getparametertypes(m), args)])
+        all([convertible(jtypeforclass(c), typeof_fixemptyarray(a)) for (c, a) in zip(getparametertypes(m), args)])
     end
 end
 
-function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
+function jdcall_cached end
+
+function jdcall_cache_clear!()
+    for m in methods(jdcall_cached)
+        Base.delete_method(m)
+    end
+end
+
+function jdcall_cache(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
     matchmethods = findmethod(obj, name, args...)
     if length(matchmethods) == 0
         allmethods = listmethods(obj, name)
@@ -62,15 +77,30 @@ function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractSt
     matchmethod = matchmethods[1]
     rettype = jtypeforclass(getreturntype(matchmethod))
     argstype = tuple(map(jtypeforclass, getparametertypes(matchmethod))...)
-    # println("type: $rettype $name$argstype")
-    return jcall(obj, name, rettype, argstype, args...)
+
+    basetype = isa(obj, DataType) ? Type{obj} : typeof(obj)
+    args_julia = Symbol.(string.("arg", 1:length(args)))
+    params_julia = [:($name::$type) for (name, type) in zip(args_julia, typeof.(args))]
+    eval(:(function jdcall_cached(base::$(basetype), ::Val{$(QuoteNode(Symbol(name)))}, $(params_julia...))
+      @show jcall(base, $name, $rettype, $argstype, $(args_julia...))
+    end))
+    return rettype, argstype
+end
+
+function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
+    if !applicable(jdcall_cached, obj, Val(Symbol(name)), args...)
+        rettype, argstype = jdcall_cache(obj, name, args...)
+        return jcall(obj, name, rettype, argstype, args...)
+    end
+    @info("using cached $(@which jdcall_cached(obj, Val(Symbol(name)), args...))")
+    return @show jdcall_cached(obj, Val(Symbol(name)), args...)
 end
 
 function parse_json(result::Array{JString})
     data = map(result) do line
         JavaCall.unsafe_string(line) |> JSON.parse
     end
-    allkeys = union([keys(r) for r in data]...)
+    allkeys = foldl(union, [keys(r) for r in data])
     df = DataFrame()
     for key in allkeys
       df[Symbol(key)] = map(data) do row
@@ -123,6 +153,7 @@ macro spark(expr)
                 if isa(arg, Symbol)
                     return [:($(arg)[1]), :($(arg)[2:end])]
                 elseif isa(arg, Expr) && arg.head ∈ (:hcat, :vect)
+                    # TODO: handle f([a...]...)
                     first_arg = arg.args[1]
                     popfirst!(arg.args)
                     return [first_arg, arg]
