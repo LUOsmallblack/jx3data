@@ -2,3 +2,5 @@
 .ipynb_checkpoints/
 jars/
 *.log
+ivy.tmp.xml
+lib

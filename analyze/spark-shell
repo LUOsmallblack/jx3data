@@ -1,0 +1,29 @@
+#!/bin/env zsh
+
+install() {
+  scala ivy-wrapper.sc -dependency org.postgresql postgresql 42.2.5 -dependency org.apache.spark spark-core_2.12 2.4.0 -dependency org.apache.spark spark-repl_2.12 2.4.0 -retrieve "lib/[organisation].[artifact]-[revision](-[classifier]).[ext]"
+}
+
+shell() {
+  java -cp 'lib/*' -Dscala.usejavacp=true -Xmx1g org.apache.spark.deploy.SparkSubmit --class org.apache.spark.repl.Main --name "Spark shell" --jars 'jars/*' "$@" spark-shell
+}
+
+uninstall() {
+  echo removing lib/
+  rm -rf lib
+}
+
+case "x$1" in
+  "xinstall" )
+    shift
+    install "$@"
+    ;;
+  "xshell" )
+    shift
+    shell "$@"
+    ;;
+  "xuninstall" )
+    shift
+    uninstall "$@"
+    ;;
+esac
