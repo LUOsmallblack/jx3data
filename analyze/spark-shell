@@ -1,11 +1,18 @@
 #!/bin/env zsh
 
 install() {
-  scala ivy-wrapper.sc -dependency org.postgresql postgresql 42.2.5 -dependency org.apache.spark spark-core_2.12 2.4.0 -dependency org.apache.spark spark-repl_2.12 2.4.0 -retrieve "lib/[organisation].[artifact]-[revision](-[classifier]).[ext]"
+  mkdir -p lib
+  # scala ivy-wrapper.sc -dependency org.postgresql postgresql 42.2.5 -dependency org.apache.spark spark-core_2.12 2.4.0 -dependency org.apache.spark spark-repl_2.12 2.4.0 -retrieve "lib/[organisation].[artifact]-[revision](-[classifier]).[ext]"
+  coursier fetch -e 2.12.7 -r central org.postgresql:postgresql:42.2.5 org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-core:2.4.0 org.apache.spark::spark-repl:2.4.0
 }
 
 shell() {
-  java -cp 'lib/*' -Dscala.usejavacp=true -Xmx1g org.apache.spark.deploy.SparkSubmit --class org.apache.spark.repl.Main --name "Spark shell" --jars 'jars/*' "$@" spark-shell
+  java -cp "$(coursier fetch -p true -e 2.12.7 -r central org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-repl:2.4.0)" -Dscala.usejavacp=true -Xmx1g org.apache.spark.deploy.SparkSubmit --class org.apache.spark.repl.Main --name "Spark shell" --jars 'jars/*' "$@" spark-shell
+}
+
+compile() {
+  mkdir -p classes
+  scalac -d jars/jx3app-analyze.jar -classpath "$(coursier fetch -p true -e 2.12.7 -r central org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-sql:2.4.0)" "$@"
 }
 
 uninstall() {
@@ -21,6 +28,10 @@ case "x$1" in
   "xshell" )
     shift
     shell "$@"
+    ;;
+  "xcompile" )
+    shift
+    compile "$@"
     ;;
   "xuninstall" )
     shift
