@@ -41,6 +41,7 @@ val opts = Map(
 
 var df = spark.read.format("jdbc").options(opts).load
 
+//%%
 //df.explain
 import org.apache.spark.sql.functions._
 import spark.implicits._
@@ -56,6 +57,6 @@ import org.apache.spark.sql.Encoders
 // df = df.filter($"inserted_at" > expr("current_timestamp() + INTERVAL -30 DAYS"))
 df = df.filter($"match_id" > 49600000)
 val df1 = spark.read.schema(Encoders.product[Replay].schema).json(df.select("replay").as[String]).as[Replay](Encoders.product[Replay])
-df1.map(Replay.get_first_skill).groupBy("value").count().explain
+df1.map(Replay.get_first_skill).groupBy("value").count().show()
 
 spark.close()

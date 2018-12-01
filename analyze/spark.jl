@@ -23,6 +23,7 @@ spark = SparkSession(master="spark://clouds-sp:7077"; config=conf)
 sc = Spark.context(spark)
 # Spark.checkpoint_dir!(sc, "/tmp/spark")
 Spark.add_jar(sc, "jars/postgresql-42.2.5.jar")
+Spark.add_jar(sc, "jars/jx3app-analyze.jar")
 
 opts(table) = Dict(
     "url" => "jdbc:postgresql://localhost:5733/j3",

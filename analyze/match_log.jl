@@ -1,7 +1,38 @@
-spark
+using Dates
 
+#%%
 match_logs = read_df(spark; format="jdbc", options=opts("match_3c.match_logs"))
-@spark match_logs.join(matches.jdf, seq("match_id"))
+# match_logs_30days = @spark match_logs.filter(@col inserted_at.gt(@col expr("current_timestamp() + INTERVAL -30 DAYS")))
+match_logs_recently = @spark match_logs.filter(@col match_id.gt(int_obj(49600000)))
+# @spark match_logs.filter(@col match_id.gt(int_obj(1))).explain()
+
+JReplay_ = @jimport("jx3app.case_class.Replay\$")
+JReplay_ = jfield(JReplay_, "MODULE\$", JReplay_)
+EncoderReplay = @java JReplay_.encoder()
+replay_schema = @java EncoderReplay.schema()
+JEncoders = @jimport("org.apache.spark.sql.Encoders")
+match_logs_replay_recently = @spark match_logs_recently.select(["replay"]...).as(@java JEncoders.STRING())
+match_logs_replay_recently = Dataset(@java spark.jsess.read().schema(@java EncoderReplay.schema()).json(match_logs_replay_recently.jdf))
+# @spark match_logs_replay_recently.show()
+
+#%%
+match_logs_struct = @spark match_logs_replay_recently.as(EncoderReplay)
+@spark match_logs_struct.map(jdcall(JReplay_, "get_first_skill"), @java(JEncoders.STRING())).groupBy(["value"]...).count().sort([@col count.desc()]).show()
+
+#%%
+match_logs_recently_tmp = @spark match_logs_replay_recently.join(matches.jdf, seq("match_id"), "left").
+    withColumn("team1_size", @col team1_kungfu.size()).
+    withColumn("team2_size", @col team1_kungfu.size()).
+    filter("size(role_ids) == team1_size+team2_size").
+    withColumn("team1_ids", @col expr("slice(role_ids, 1, team1_size)")).
+    withColumn("team2_ids", @col expr("slice(role_ids, team1_size+1, team2_size)")).
+    withColumn("start_time", @col start_time.from_unixtime().to_timestamp()).
+    select(["match_id", "replay", "players", "team1_ids", "team2_ids", "match_duration"]...)
+
+#%%
+# udf = @java spark.jsess.udf()
+# listmethods(udf, "register")
+# listmethods(udf, "registerPython")
 
 #%% analyze whether in team
 match_teams = split_team(matches)

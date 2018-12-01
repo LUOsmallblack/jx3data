@@ -5,6 +5,7 @@ convertible(::Type{T}, juliatype::Type) where T <: JavaCall.jprimitive = juliaty
 convertible(javatype::Type{JavaObject{T}}, juliatype::Type{S}) where {T, S} = hasmethod(convert, Tuple{Type{javatype}, juliatype})
 convertible(javatype::Type{Array{JavaObject{T}, 1}}, juliatype::Type{Array{S, 1}}) where {T, S} = convertible(JavaObject{T}, S)
 convertible(javatype::Type{Array{JavaObject{T}, 1}}, juliatype::Type{Array{Any, 0}}) where T = true
+convertible(javatype::Type{Array{JavaObject{T}, 1}}, juliatype::Type) where T = false
 
 function jtypeforclass(cls::JClass)
     isarray(cls) = jcall(cls, "isArray", jboolean, ()) != 0x00
@@ -195,6 +196,12 @@ macro col(expr)
         expr
     end
     trans_call(base, method, args) = :(try_call($(base), $(string(method)), $(args...)))
+    macro_javacall(trans_term, trans_call, expr)
+end
+
+macro java(expr)
+    trans_term(expr) = expr
+    trans_call(base, method, args) = :(jdcall($(base), $(string(method)), $(args...)))
     macro_javacall(trans_term, trans_call, expr)
 end
 
