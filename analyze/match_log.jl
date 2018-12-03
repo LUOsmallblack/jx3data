@@ -1,23 +1,38 @@
 using Dates
 
 #%%
-match_logs = read_df(spark; format="jdbc", options=opts("match_3c.match_logs"))
+match_logs = with_java_classloader(spcl) do
+    read_df(spark; format="jdbc", options=opts("match_3c.match_logs"))
+end
 # match_logs_30days = @spark match_logs.filter(@col inserted_at.gt(@col expr("current_timestamp() + INTERVAL -30 DAYS")))
 match_logs_recently = @spark match_logs.filter(@col match_id.gt(int_obj(49600000)))
 # @spark match_logs.filter(@col match_id.gt(int_obj(1))).explain()
-
-JReplay_ = @jimport("jx3app.case_class.Replay\$")
-JReplay_ = jfield(JReplay_, "MODULE\$", JReplay_)
+compile() = run(`./spark-shell compile case_class.scala`)
+#%%
+jar_version = [match(r"^jx3app-analyze-(\d+)\.jar$", x) for x in readdir("jars")] |> r->filter(x->x!=nothing, r) |>
+    r->map(x->parse(Int,x.captures[1]), r) |> maximum
+@java spcl.add("jars/jx3app-analyze-$jar_version.jar")
+Spark.add_jar(sc, "jars/jx3app-analyze-$jar_version.jar")
+JReplay_s = Symbol("jx3app.case_class.v$jar_version.Replay\$")
+JReplay_ = JavaObject{JReplay_s}
+JReplay_ = with_java_classloader(spcl) do
+    # @show @java JThread.currentThread().getContextClassLoader()
+    @java JClass.forName(String(JReplay_s), jboolean(true), spcl)
+    jfield(JReplay_, "MODULE\$", JReplay_)
+end
 EncoderReplay = @java JReplay_.encoder()
 replay_schema = @java EncoderReplay.schema()
+#%%
 JEncoders = @jimport("org.apache.spark.sql.Encoders")
 match_logs_replay_recently = @spark match_logs_recently.select(["replay"]...).as(@java JEncoders.STRING())
 match_logs_replay_recently = Dataset(@java spark.jsess.read().schema(@java EncoderReplay.schema()).json(match_logs_replay_recently.jdf))
 # @spark match_logs_replay_recently.show()
 
 #%%
-match_logs_struct = @spark match_logs_replay_recently.as(EncoderReplay)
-@spark match_logs_struct.map(jdcall(JReplay_, "get_first_skill"), @java(JEncoders.STRING())).groupBy(["value"]...).count().sort([@col count.desc()]).show()
+with_java_classloader(spcl) do
+    match_logs_struct = @spark match_logs_replay_recently.as(EncoderReplay)
+    @spark match_logs_struct.map(jdcall(JReplay_, "get_first_skill"), @java(JEncoders.STRING())).groupBy(["value"]...).count().sort([@col count.desc()]).show()
+end
 
 #%%
 match_logs_recently_tmp = @spark match_logs_replay_recently.join(matches.jdf, seq("match_id"), "left").

@@ -10,9 +10,26 @@ shell() {
   java -cp "$(coursier fetch -p true -e 2.12.7 -r central org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-repl:2.4.0)" -Dscala.usejavacp=true -Xmx1g org.apache.spark.deploy.SparkSubmit --class org.apache.spark.repl.Main --name "Spark shell" --jars 'jars/*' "$@" spark-shell
 }
 
+current_version() {
+  version_number=$(ls -1 jars | grep "^jx3app-analyze-\([0-9]\+\).jar$" | sed "s|jx3app-analyze-\(.*\).jar|\1|" | sort -n | tail -n 1)
+  echo ${version_number:-0}
+}
+
 compile() {
-  mkdir -p classes
-  scalac -d jars/jx3app-analyze.jar -classpath "$(coursier fetch -p true -e 2.12.7 -r central org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-sql:2.4.0)" "$@"
+  set -e
+  version=$(($(current_version)+1))
+  echo "generate v$version"
+  rm -rf "gen/$version"
+  mkdir -p "gen/$version"
+  for f in "$@"; do
+    sed "s|^package .*$|\0.v$version|" $f > "gen/$version/$f"
+  done
+  echo compile "gen/$version/${^@}"
+  scalac -d "jars/jx3app-analyze-$version.jar" -classpath "$(coursier fetch -p true -e 2.12.7 -r central org.scala-lang:scala-compiler:2.12.7 org.apache.spark::spark-sql:2.4.0)" "gen/$version/${^@}"
+}
+
+clean() {
+  rm -rf gen jars/jx3app-analyze-*.jar
 }
 
 uninstall() {
@@ -36,5 +53,13 @@ case "x$1" in
   "xuninstall" )
     shift
     uninstall "$@"
+    ;;
+  "xversion" )
+    shift
+    current_version
+    ;;
+  "xclean" )
+    shift
+    clean
     ;;
 esac

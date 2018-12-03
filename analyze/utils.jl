@@ -39,6 +39,8 @@ function _narrow(obj::JavaObject)
     c = jcall(obj,"getClass", JClass, ())
     return convert(jtypeforclass(c), obj)
 end
+_narrow(obj::Array) = _narrow.(obj)
+_narrow(obj::String) = obj
 _narrow(obj::JavaCall.jprimitive) = obj
 _narrow(::Nothing) = nothing
 
@@ -89,7 +91,7 @@ function jdcall_cache(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::Abst
 end
 
 function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractString, args...) where C
-    if !applicable(jdcall_cached, obj, Val(Symbol(name)), args...)
+    if !applicable(jdcall_cached, obj, Val(Symbol(name)), args...) || true
         rettype, argstype = jdcall_cache(obj, name, args...)
         return jcall(obj, name, rettype, argstype, args...)
     end

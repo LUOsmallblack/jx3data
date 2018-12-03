@@ -10,9 +10,13 @@ include("utils.jl")
 #     # download_jar(coordinate) = run(`mvn dependency:get -Dartifact=$coordinate`)
 #     download_jar("org.postgresql:postgresql:42.2.5")
 # end
-for x in readdir("jars"); JavaCall.addClassPath(joinpath("jars", x)) end
-JavaCall.addOpts("-Xss8m")
+# for x in readdir("jars"); JavaCall.addClassPath(joinpath("jars", x)) end
+JavaCall.addClassPath("jars/specialclassloader.jar")
+# JavaCall.addOpts("-Xss8m")
 Spark.init()
+
+include("javavm.jl")
+@java spcl.add("jars/postgresql-42.2.5.jar")
 #%%
 conf = Dict(
     "spark.executor.memory"=>"12g",
@@ -23,18 +27,22 @@ spark = SparkSession(master="spark://clouds-sp:7077"; config=conf)
 sc = Spark.context(spark)
 # Spark.checkpoint_dir!(sc, "/tmp/spark")
 Spark.add_jar(sc, "jars/postgresql-42.2.5.jar")
-Spark.add_jar(sc, "jars/jx3app-analyze.jar")
 
 opts(table) = Dict(
     "url" => "jdbc:postgresql://localhost:5733/j3",
     "dbtable" => table,
     "driver" => "org.postgresql.Driver")
-items = read_df(spark; format="jdbc", options=opts("items"))
-matches = read_df(spark; format="jdbc", options=opts("match_3c.matches"))
-scores = read_df(spark; format="jdbc", options=opts("scores"))
-role_kungfus = read_df(spark; format="jdbc", options=opts("role_kungfus"))
-roles = read_df(spark; format="jdbc", options=opts("roles"))
-match_roles = read_df(spark; format="jdbc", options=opts("match_3c.match_roles"))
+
+items, matches, scores, role_kungfus, roles, match_roles =
+    with_java_classloader(spcl) do
+        items = read_df(spark; format="jdbc", options=opts("items"))
+        matches = read_df(spark; format="jdbc", options=opts("match_3c.matches"))
+        scores = read_df(spark; format="jdbc", options=opts("scores"))
+        role_kungfus = read_df(spark; format="jdbc", options=opts("role_kungfus"))
+        roles = read_df(spark; format="jdbc", options=opts("roles"))
+        match_roles = read_df(spark; format="jdbc", options=opts("match_3c.match_roles"))
+        (items, matches, scores, role_kungfus, roles, match_roles)
+    end
 
 #%%
 # jdcall_cache_clear!()
