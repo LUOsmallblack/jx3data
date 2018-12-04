@@ -18,7 +18,7 @@ defmodule Model.Repo.Migrations.CreateRoleKungfus do
       add :metrics, {:array, :map}
       add :skills, {:array, :map}
 
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

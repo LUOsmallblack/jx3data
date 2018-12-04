@@ -16,7 +16,7 @@ defmodule Model.Repo.Migrations.CreateMatches do
       #add :role_ids, {:array, :string}
       add :winner, :integer
 
-      timestamps(updated_at: false)
+      timestamps(type: :naive_datetime_usec, updated_at: false)
     end
     #create index(:matches, :start_time)
 
@@ -37,7 +37,7 @@ defmodule Model.Repo.Migrations.CreateMatches do
       add :attrs, {:array, :float}
       add :attrs_version, :integer
 
-      timestamps(updated_at: false)
+      timestamps(type: :naive_datetime_usec, updated_at: false)
     end
     create index(:match_roles, :role_id)
 
@@ -45,7 +45,7 @@ defmodule Model.Repo.Migrations.CreateMatches do
       add :match_id, references(:matches, column: :match_id, type: :bigint), primary_key: true
       add :replay, :map
 
-      timestamps(updated_at: false)
+      timestamps(type: :naive_datetime_usec, updated_at: false)
     end
   end
 end

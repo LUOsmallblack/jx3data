@@ -12,7 +12,7 @@ defmodule Jx3App.Model.Person do
     field :avatar, :string
     field :signature, :string
     has_many :roles, Role, foreign_key: :person_id
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
 
     @permitted ~w(name avatar signature)a
 

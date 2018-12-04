@@ -7,7 +7,7 @@ defmodule Model.Repo.Migrations.CreateRoles do
       add :name, :string
       add :avatar, :text
       add :signature, :text
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
 
     create table(:roles, primary_key: false) do
@@ -21,7 +21,7 @@ defmodule Model.Repo.Migrations.CreateRoles do
       add :zone, :string
       add :server, :string
       add :person_id, references(:persons, column: :person_id, type: :string)
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
     create index(:roles, [:role_id, :zone, :server])
     #create index(:roles, :person_id)

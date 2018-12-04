@@ -6,7 +6,7 @@ defmodule Model.Repo.Migrations.CreateItems do
       add :tag, :string, primary_key: true
       add :id, :string, primary_key: true
       add :content, :map
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
   end
 end

@@ -10,7 +10,7 @@ defmodule Model.Repo.Migrations.TransferRolePassportData do
     schema "role_passport_logs" do
       field :global_id, :string
       field :passport_id, :string
-      Ecto.Schema.timestamps(updated_at: false)
+      Ecto.Schema.timestamps(type: :naive_datetime_usec, updated_at: false)
     end
   end
 

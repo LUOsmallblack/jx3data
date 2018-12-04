@@ -8,7 +8,7 @@ defmodule Jx3App.Model.Item do
     field :tag, :string, primary_key: true
     field :id, :string, primary_key: true
     field :content, AnyType
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @permitted ~w(content)a

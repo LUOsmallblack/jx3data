@@ -21,7 +21,7 @@ defmodule Jx3App.Model.MatchRole do
     field :attrs_version, :integer
     field :attrs, {:array, :float}
 
-    timestamps(updated_at: false)
+    timestamps(type: :naive_datetime_usec, updated_at: false)
   end
 
   @permitted ~w(kungfu score score2 ranking equip_score equip_addition_score max_hp

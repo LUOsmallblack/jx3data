@@ -15,7 +15,7 @@ defmodule Jx3App.Model.Role do
     field :server, :string
     belongs_to :person, Person, type: :string, references: :person_id
     has_many :performances, RolePerformance, foreign_key: :role_id
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
 
     @permitted ~w(role_id passport_id name force body_type camp zone server person_id)a
 

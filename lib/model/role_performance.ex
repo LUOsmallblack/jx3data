@@ -17,9 +17,9 @@ defmodule Jx3App.Model.RolePerformance do
     field :mvp_count, :integer
     field :fetched_count, :integer, default: 0
     field :fetched_to, :integer
-    field :fetched_at, :naive_datetime
+    field :fetched_at, :naive_datetime_usec
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @permitted ~w(score score2 grade ranking ranking2 total_count win_count mvp_count fetched_count fetched_to fetched_at)a
@@ -65,7 +65,7 @@ defmodule Jx3App.Model.RoleKungfu do
     field :metrics, {:array, :map}
     field :skills, {:array, :map}
 
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @permitted ~w(mvp_count total_count win_count metrics skills)a
@@ -102,7 +102,7 @@ defmodule Jx3App.Model.RolePerformanceLog do
     field :mvp_count, :integer
     belongs_to :role, Role, type: :string, references: :global_id
 
-    timestamps(updated_at: false)
+    timestamps(type: :naive_datetime_usec, updated_at: false)
   end
 
   @permitted ~w(match_type score grade ranking total_count win_count mvp_count role_id)a

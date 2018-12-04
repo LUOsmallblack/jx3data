@@ -9,7 +9,7 @@ defmodule Model.Repo.Migrations.CreateRoleLogs do
       add :zone, :string, null: false
       add :server, :string, null: false
       add :seen, {:array, :daterange}
-      timestamps()
+      timestamps(type: :naive_datetime_usec)
     end
     create index(:role_logs, :global_id)
     create index(:role_logs, [:role_id, :zone, :server])
@@ -18,7 +18,7 @@ defmodule Model.Repo.Migrations.CreateRoleLogs do
     create table(:role_passport_logs) do
       add :global_id, :string, null: false
       add :passport_id, :string, null: false
-      timestamps(updated_at: false)
+      timestamps(type: :naive_datetime_usec, updated_at: false)
     end
 
     execute """

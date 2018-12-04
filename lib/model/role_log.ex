@@ -10,7 +10,7 @@ defmodule Jx3App.Model.RoleLog do
     field :zone, :string, default: ""
     field :server, :string, default: ""
     field :seen, {:array, DateRangeType}
-    timestamps()
+    timestamps(type: :naive_datetime_usec)
   end
 
   @permitted ~w(role_id global_id name zone server seen)a
