@@ -334,8 +334,11 @@ defmodule Jx3App.API do
   end
 
   def handle(:match_replay, {match_type, match_id}, token) do
-    {:ok, %{} = d} = post("https://m.pvp.xoyo.com/#{match_type}/mine/match/replay", %{match_id: match_id}, token)
-    Map.drop(d, ["skill_cate"]) |> Map.put("match_type", match_type)
+    result = post("https://m.pvp.xoyo.com/#{match_type}/mine/match/replay", %{match_id: match_id}, token)
+    case result do
+      {:error, {:result, "No data found"}} -> nil
+      {:ok, %{} = d} -> Map.drop(d, ["skill_cate"]) |> Map.put("match_type", match_type)
+    end
   end
 
   def handle(:match_detail, {match_type, match_id}, token) do

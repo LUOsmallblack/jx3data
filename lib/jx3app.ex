@@ -24,7 +24,7 @@ defmodule Jx3App.Application do
       :poolboy.child_spec(:cache_pool, [name: {:local, Jx3App.Cache}, worker_module: Jx3App.Cache, size: 5]),
     ] else [] end ++
     if Enum.any?([:all, :server], &(&1 in args)) do
-      [Plug.Adapters.Cowboy2.child_spec(scheme: :http, plug: Jx3App.Server, options: server_args),]
+      [Plug.Cowboy.child_spec(scheme: :http, plug: Jx3App.Server, options: server_args),]
     else [] end ++
     if Enum.any?([:all, :crawler], &(&1 in args)) do
       [worker(Jx3App.Crawler, [], restart: :transient),]

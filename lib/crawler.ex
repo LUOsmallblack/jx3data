@@ -169,7 +169,7 @@ defmodule Jx3App.Crawler do
     detail
   end
 
-  defp do_fetch_count(global_id, new_perf, limit, old_fetched_to, old_rank) do
+  defp do_fetch_count(new_perf, limit, old_fetched_to, old_rank) do
     {fetched_to, count, new_rank} =
       case new_perf do
         nil -> {old_fetched_to, nil, nil}
@@ -217,7 +217,7 @@ defmodule Jx3App.Crawler do
       _ -> nil
     end
     {fetched_to, limit} = case opts[:mode] || :recent do
-      :recent -> do_fetch_count(global_id, new_perf, opts[:limit], Map.get(perf, :fetched_to), Map.get(perf, :ranking))
+      :recent -> do_fetch_count(new_perf, opts[:limit], Map.get(perf, :fetched_to), Map.get(perf, :ranking))
       :all -> { new_perf[:total_count] || Map.get(perf, :fetched_to), new_perf[:total_count] || 2000 }
       # :exact -> { new_perf[:total_count] || Map.get(perf, :fetched_to), opts[:limit] }
     end
@@ -265,7 +265,8 @@ defmodule Jx3App.Crawler do
 
   def run(opts \\ [mode: :all]) do
     name = opts[:name] || :crawler_3c
-    Jx3App.Task.start_task(name, Model.Query.get_roles(:all), fn {r, p} -> fetch(r, p, opts) end, nil)
+    roles = Model.Query.get_roles(match_type: opts[:match_type], limit: :all)
+    Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, p, opts) end, nil)
   end
 
   def stop(opts \\ []) do
