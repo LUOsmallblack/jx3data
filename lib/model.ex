@@ -17,7 +17,7 @@ defmodule Jx3App.Model do
   defmodule DateRangeType do
     @behaviour Ecto.Type
     def type, do: :daterange
-    def load(%Postgrex.Range{} = range), do: {:ok, range}
+    def load(%Postgrex.Range{} = range), do: apply_range(range, fn x -> Ecto.Type.load(:date, x) end)
     def load(_), do: :error
     def cast([lower, upper], opts) do
       lower_inclusive = case opts[:upper_inclusive] do
@@ -27,11 +27,18 @@ defmodule Jx3App.Model do
       upper_inclusive = opts[:upper_inclusive] || false
       cast(%Postgrex.Range{lower: lower, lower_inclusive: lower_inclusive, upper: upper, upper_inclusive: upper_inclusive})
     end
-    def cast(%Postgrex.Range{} = range), do: {:ok, range}
+    def cast(%Postgrex.Range{} = range), do: apply_range(range, fn x -> Ecto.Type.cast(:date, x) end)
     def cast([lower, upper]), do: cast([lower, upper], [])
     def cast(_), do: :error
-    def dump(%Postgrex.Range{} = range), do: {:ok, range}
+    def dump(%Postgrex.Range{} = range), do: apply_range(range, fn x -> Ecto.Type.dump(:date, x) end)
     def dump(_), do: :error
+    def apply_range(%Postgrex.Range{lower: lower, upper: upper} = range, func) do
+      func = fn nil -> {:ok, nil}; x -> func.(x) end
+      case {func.(lower), func.(upper)} do
+        {{:ok, lower}, {:ok, upper}} -> {:ok, %{range | lower: lower, upper: upper}}
+        _ -> :error
+      end
+    end
 
     def in?(%Postgrex.Range{} = r, %Date{} = i) do
       {:ok, r} = cast(r)

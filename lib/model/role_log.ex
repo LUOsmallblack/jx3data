@@ -18,6 +18,11 @@ defmodule Jx3App.Model.RoleLog do
   def diff_date(%Date{} = d1, %Date{} = d2) do
     Date.diff(d1, d2)
   end
+  def diff_date(d1, d2) do
+    {:ok, d1} = Ecto.Type.cast(:date, d1)
+    {:ok, d2} = Ecto.Type.cast(:date, d2)
+    diff_date(d1, d2)
+  end
 
   def insert_seen(nil, [], acc) do
     Enum.reverse(acc)
@@ -59,9 +64,13 @@ defmodule Jx3App.Model.RoleLog do
 
   def insert_seen(seen, a) do
     a = a || []
-    cond do
-      Enum.any?(a, &DateRangeType.in?(&1, seen)) -> a
-      true -> insert_seen({seen, nil, nil}, a, [])
+    case Ecto.Type.cast(:date, seen) do
+      {:ok, s} ->
+        cond do
+          Enum.any?(a, &DateRangeType.in?(&1, s)) -> a
+          true -> insert_seen({s, nil, nil}, a, [])
+        end
+      _ -> a
     end
   end
 
