@@ -308,7 +308,12 @@ defmodule Jx3App.API do
 
   def handle(:role_history, {match_type, global_id, cursor, size}, token) do
     size = size || 100
-    {:ok, d} = post("https://m.pvp.xoyo.com/#{match_type}/mine/match/history", %{global_role_id: global_id, cursor: cursor, size: size}, token)
+    result = post("https://m.pvp.xoyo.com/#{match_type}/mine/match/history", %{global_role_id: global_id, cursor: cursor, size: size}, token)
+    {:ok, d} = case result do
+      {:ok, _} -> result
+      {:error, {:result, "Unkown system error, runtime error: slice bounds out of range"}} -> {:ok, []}
+      _ -> result
+    end
     d |> Enum.map(fn m ->
       %{
         match_id: m |> Map.get("match_id"),

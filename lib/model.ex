@@ -164,7 +164,13 @@ defmodule Jx3App.Model do
           |> Ecto.Multi.insert(:match, %Match{match_id: id} |> Match.changeset(match), prefix: Match.prefix(match_type))
           {:ok, r} = Enum.reduce(roles, multi, fn r, multi ->
             role_id = Map.get(r, :global_id)
-            multi |> Ecto.Multi.insert("role_#{role_id}", %MatchRole{match_id: id, role_id: role_id} |> MatchRole.changeset(r), prefix: Match.prefix(match_type))
+            changeset = %MatchRole{match_id: id, role_id: role_id} |> MatchRole.changeset(r)
+              |> Ecto.Changeset.prepare_changes(fn c ->
+                from(r in RolePerformance, where: r.role_id == ^role_id and r.match_type == ^match_type)
+                |> c.repo.update_all(inc: [fetched_count: 1])
+                c
+              end)
+            multi |> Ecto.Multi.insert("role_#{role_id}", changeset, prefix: Match.prefix(match_type))
           end)
           |> Repo.transaction
           {:ok, %{Map.get(r, :match) | roles: Enum.map(roles, fn i ->

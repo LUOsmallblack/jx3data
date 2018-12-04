@@ -3,7 +3,7 @@ defmodule Jx3App.Crawler do
   require Logger
 
   def start_link do
-    {:ok, spawn_link(&run/0)}
+    {:ok, run()}
   end
 
   def save_performance(_, nil), do: []
@@ -148,13 +148,18 @@ defmodule Jx3App.Crawler do
     end
   end
 
-  def matches(match_type \\ "3c", %{global_id: global_id}, size \\ 100) do
-    history = api({:role_history, match_type, global_id, 0, size || 100})
-    if history do
-      history |> Enum.map(fn %{match_id: id, match_type: match_type} = m ->
-        Model.Query.get_match(match_type, id) || match(m) || m
-      end)
-    end || []
+  @match_default_size 100
+  def matches(match_type \\ "3c", %{global_id: global_id}, size \\ @match_default_size) do
+    size = size || @match_default_size
+    block_size = @match_default_size*2
+    block_count = max(div(size-1, block_size)-1, 0)
+    history = 0..block_count |> Enum.flat_map(fn i ->
+      cur_size = if i == block_count do size - i*block_size else block_size end
+      api({:role_history, match_type, global_id, i*block_size, cur_size}) || []
+    end)
+    history |> Enum.map(fn %{match_id: id, match_type: match_type} = m ->
+      Model.Query.get_match(match_type, id) || match(m) || m
+    end)
   end
 
   def match(%{match_id: match_id, match_type: match_type} = m) do
@@ -164,25 +169,19 @@ defmodule Jx3App.Crawler do
     detail
   end
 
-  def do_fetch(role, match_type, perf, opts \\ []) do
-    global_id = Map.get(role, :global_id)
-    indicators = case role do
-      %{role_id: role_id, zone: zone, server: server} -> api({:role_info, role_id, zone, server})
-      _ -> nil
-    end
-    performances = indicators[:indicator] || []
+  defp do_fetch_count(global_id, new_perf, limit, old_fetched_to, old_rank) do
     {fetched_to, count, new_rank} =
-      case performances |> Enum.filter(fn p -> p[:match_type] == match_type end) do
-        [%{performance: new_perf}] ->
+      case new_perf do
+        nil -> {old_fetched_to, nil, nil}
+        _ ->
           {fetched_to, count} =
-            case {new_perf[:total_count], Map.get(perf, :fetched_to) || Map.get(perf, :total_count)} do
+            case {new_perf[:total_count], old_fetched_to} do
               {nil, y} -> {y, nil}
               {x, nil} -> {x, nil}
               {x, y} -> {x, x - y}
             end
           ranking = new_perf[:ranking]
           {fetched_to, count, ranking}
-        _ -> {Map.get(perf, :fetched_to), nil, nil}
       end
     count = case count do
       nil -> nil
@@ -190,12 +189,41 @@ defmodule Jx3App.Crawler do
       x when x < 50 -> x + 5
       x -> round(x*1.1)
     end
-    limit = case {count, opts[:limit]} do
+    rank = new_rank || old_rank
+    limit = cond do
+      limit -> limit
+      rank >= 0 -> 100
+      rank >= -3 -> 50
+      rank >= -10 -> 20
+      true -> 10
+    end
+    limit = case {count, limit} do
       {nil, limit} -> limit
       {x, nil} -> x
       {x, y} -> min(x, y)
     end
-    Logger.info("fetching #{limit} matches of #{global_id} of #{Map.get(perf, :ranking)} -> #{new_rank}")
+    {fetched_to, limit}
+  end
+
+  def do_fetch(role, match_type, perf, opts \\ []) do
+    global_id = Map.get(role, :global_id)
+    indicators = case role do
+      %{role_id: role_id, zone: zone, server: server} -> api({:role_info, role_id, zone, server})
+      _ -> nil
+    end
+    performances = indicators[:indicator] || []
+    new_perf = case performances |> Enum.filter(fn p -> p[:match_type] == match_type end) do
+      [%{performance: new_perf}] -> new_perf
+      _ -> nil
+    end
+    {fetched_to, limit} = case opts[:mode] || :recent do
+      :recent -> do_fetch_count(global_id, new_perf, opts[:limit], Map.get(perf, :fetched_to), Map.get(perf, :ranking))
+      :all -> { new_perf[:total_count] || Map.get(perf, :fetched_to), new_perf[:total_count] || 2000 }
+      # :exact -> { new_perf[:total_count] || Map.get(perf, :fetched_to), opts[:limit] }
+    end
+    fetched_to = fetched_to || Map.get(perf, :fetched_to)
+
+    Logger.info("fetching #{limit} matches of #{global_id} of #{perf[:ranking]} -> #{new_perf[:ranking] || "??"}")
     if limit == nil do
       Logger.error("limit should not be null #{performances |> Enum.map(& &1[:type]) |> inspect}\n" <> inspect(indicators))
     end
@@ -216,37 +244,31 @@ defmodule Jx3App.Crawler do
           Logger.info("No match fetched for #{global_id}")
           new_perf
       end
+    new_perf = if opts[:mode] == :all do
+      fetched_count = history |> Enum.filter(fn %Model.Match{} -> true; _ -> false end) |> Enum.count()
+      new_perf |> Map.put(:fetched_count, fetched_count)
+    else new_perf end |> IO.inspect(label: "perf")
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_at: last} = perf) do
+  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_at: last} = perf, opts \\ []) do
     cond do
-      ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, limit: 100)
-      last == nil -> do_fetch(role, match_type, %{ranking: ranking}, limit: 20)
-      ranking in [-1, -2, -3] and not Utils.time_in?(last, 6, :day) -> do_fetch(role, match_type, perf, limit: 100)
-      ranking > 0 and not Utils.time_in?(last, 18, :hour) -> do_fetch(role, match_type, perf)
-      not Utils.time_in?(last, 7, :day) -> do_fetch(role, match_type, perf, limit: 10)
+      opts[:mode] == :all -> do_fetch(role, match_type, %{ranking: ranking}, opts)
+      ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :limit, 100))
+      last == nil -> do_fetch(role, match_type, %{ranking: ranking}, opts)
+      ranking in [-1, -2, -3] and not Utils.time_in?(last, 6, :day) -> do_fetch(role, match_type, perf, opts)
+      ranking > 0 and not Utils.time_in?(last, 18, :hour) -> do_fetch(role, match_type, perf, opts)
+      not Utils.time_in?(last, 7, :day) -> do_fetch(role, match_type, perf, opts)
       true -> nil
     end
   end
 
-  def run do
-    Model.Query.get_roles(:all) |> Enum.map(fn {r, p} ->
-      try do
-        fetch(r, p)
-      catch
-        :exit, e when e != :stop -> Logger.error "Crawler (exit): " <> Exception.format(:error, e, __STACKTRACE__)
-          :error
-      end
-    end)
-    Logger.info("Done")
+  def run(opts \\ [mode: :all]) do
+    name = opts[:name] || :crawler_3c
+    Jx3App.Task.start_task(name, Model.Query.get_roles(:all), fn {r, p} -> fetch(r, p, opts) end, nil)
   end
 
-  def start do
-    spawn(&run/0)
-  end
-
-  def stop(pid) do
-    Process.exit(pid, :stop)
+  def stop(opts \\ []) do
+    Jx3App.Task.kill(opts[:name] || :crawler_3c)
   end
 end

@@ -15,7 +15,7 @@ defmodule Jx3App.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Jx3App.Application, []}
+      mod: {Jx3App.Application, [:all]}
     ]
   end
 
@@ -35,6 +35,7 @@ defmodule Jx3App.MixProject do
       {:redix, "~> 0.9.0"},
       {:cowboy, "~> 2.6"},
       {:plug, "~> 1.7"},
+      {:plug_cowboy, "~> 2.0"},
       {:absinthe, "~> 1.4"},
       {:absinthe_plug, "~> 1.4"},
       {:dataloader, "~> 1.0"},

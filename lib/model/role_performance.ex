@@ -15,7 +15,7 @@ defmodule Jx3App.Model.RolePerformance do
     field :total_count, :integer
     field :win_count, :integer
     field :mvp_count, :integer
-    field :fetched_count, :integer
+    field :fetched_count, :integer, default: 0
     field :fetched_to, :integer
     field :fetched_at, :naive_datetime
 
@@ -34,8 +34,15 @@ defmodule Jx3App.Model.RolePerformance do
   end
   def fix_ranking(change), do: change
 
+  def check_fetched_count(%{fetched_count: fetched_count} = c, %{fetched_count: old_fetched_count})
+    when fetched_count != nil and old_fetched_count != nil and fetched_count < old_fetched_count do
+    %{c | fetched_count: nil}
+  end
+  def check_fetched_count(c, _), do: c
+
   def changeset(perf, change \\ :empty) do
     change = change |> fix_ranking
+    |> check_fetched_count(perf)
     |> Enum.filter(fn {_, v} -> v != nil end)
     |> Enum.into(%{})
     cast(perf, change, @permitted)
