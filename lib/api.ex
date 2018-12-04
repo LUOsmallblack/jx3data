@@ -37,13 +37,13 @@ defmodule Jx3App.API do
   def _post(url, body, option) do
     body = sign_data body
     option = Keyword.put_new(option, :"Content-Type", "application/json")
-    case Poison.encode body do
+    case Jason.encode body do
       {:error, err} -> {:error, {:encode, err}}
       {:ok, body} ->
         case HTTPoison.post(url, body, option) do
           {:error, err} -> {:error, {:post, err}}
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-            case Poison.decode body do
+            case Jason.decode body do
               {:error, err} -> {:error, {:decode, err}}
               {:ok, o} -> case o do
                 %{"code" => 0, "data" => data} -> {:ok, data}

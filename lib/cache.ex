@@ -197,7 +197,7 @@ defmodule Jx3App.Cache do
     Logger.info("Cache: save items")
     items = Repo.all(from i in Item)
     items |> Enum.flat_map(fn i ->
-      Store.set("item:#{i.tag}", "hash", [{i.id, Poison.encode!(i.content)}])
+      Store.set("item:#{i.tag}", "hash", [{i.id, Jason.encode!(i.content)}])
     end) |> Store.multi
     Store.exec(["SET", "item:time", Store.now])
   end
@@ -208,7 +208,7 @@ defmodule Jx3App.Cache do
       items()
     end
     {:ok, value} = Store.exec(["HGET", "item:#{tag}", key])
-    case Poison.decode(value || "") do
+    case Jason.decode(value || "") do
       {:ok, value} -> value
       _ -> value
     end
@@ -232,7 +232,7 @@ defmodule Jx3App.Cache do
           score: s.score,
           ranking: s.ranking,
           win_rate: Float.round(s.win_count/s.total_count, 3),
-        } |> Poison.encode!
+        } |> Jason.encode!
       end) |> Enum.with_index(1)
       |> Enum.map(fn {v1, v2} -> {v2, v1} end)
       {:ok, result}
@@ -247,7 +247,7 @@ defmodule Jx3App.Cache do
     case Store.cache_query("roles", query, hard_expire: true, expire_time: 3600, type: "zset", get: fun_get, get_opts: [length: limit]) do
       {:ok, result} ->
         result |> Enum.map(fn {_, i} ->
-          case Poison.decode(i || "") do
+          case Jason.decode(i || "") do
             {:ok, i} -> map_mget(i, ~w(role_id force name score ranking win_rate)a)
             _ -> nil
           end
@@ -264,13 +264,13 @@ defmodule Jx3App.Cache do
           where: r.global_id == ^role_id,
           order_by: r.seen,
           select: ^keys
-      ) |> Enum.map(fn r -> map_mget(r, keys) |> Poison.encode! end)
+      ) |> Enum.map(fn r -> map_mget(r, keys) |> Jason.encode! end)
       {:ok, result}
     end
     case Store.cache_query("role_log:#{role_id}", query, hard_expire: true, expire_time: 36000, type: "list") do
       {:ok, result} ->
         Enum.map(result, fn s ->
-          Utils.unwrap(Poison.decode(s || ""))
+          Utils.unwrap(Jason.decode(s || ""))
         end)
       _ -> nil
     end
@@ -338,7 +338,7 @@ defmodule Jx3App.Cache do
       fetched_at: r.performances |> Enum.map(fn s -> s.fetched_at end) |> Enum.filter(&!is_nil(&1)) |> Enum.max(fn->nil end) |> fn x->x && NaiveDateTime.to_string(x) end.(),
       scores: r.performances |> Enum.map(fn s ->
         [s.match_type, s.score, s.ranking, s.total_count, Float.round(s.win_count/s.total_count, 3)] end)
-      |> Enum.sort |> Poison.encode!,
+      |> Enum.sort |> Jason.encode!,
     }
   end
 
@@ -348,7 +348,7 @@ defmodule Jx3App.Cache do
       person_name: p.name,
       roles: p.roles |> Enum.map(fn r ->
         [r.global_id, r.name, r.force, r.passport_id] end)
-      |> Enum.sort |> Poison.encode!,
+      |> Enum.sort |> Jason.encode!,
     }
   end
 
@@ -367,7 +367,7 @@ defmodule Jx3App.Cache do
     case Store.cache_query("role:#{role_id}", query, hard_expire: true, get: fun_get, type: "hash") do
       {:ok, %{} = result} ->
         result
-        |> Map.put(:scores, Utils.unwrap(Poison.decode(result[:scores] || "")))
+        |> Map.put(:scores, Utils.unwrap(Jason.decode(result[:scores] || "")))
         |> Map.put(:fetched_at, Utils.unwrap(NaiveDateTime.from_iso8601(result[:fetched_at] || "")))
         |> Map.put(:fetched_count, Utils.unwrap(Ecto.Type.cast(:integer, result[:fetched_count] || "")))
       _ -> nil
@@ -389,7 +389,7 @@ defmodule Jx3App.Cache do
     case Store.cache_query("person:#{person_id}", query, hard_expire: true, get: fun_get, type: "hash") do
       {:ok, %{} = result} ->
         result
-        |> Map.put(:roles, Utils.unwrap(Poison.decode(result[:roles] || "")))
+        |> Map.put(:roles, Utils.unwrap(Jason.decode(result[:roles] || "")))
       _ -> nil
     end
   end

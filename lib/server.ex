@@ -5,7 +5,7 @@ defmodule Jx3App.Server do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json, Absinthe.Plug.Parser],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Jason
 
   plug :match
   plug :dispatch
@@ -45,20 +45,20 @@ defmodule Jx3App.Server do
   end
 
   get "/summary/count" do
-    send_resp(conn, 200, Poison.encode!(
+    send_resp(conn, 200, Jason.encode!(
       Cache.call({:count}), pretty: true) |> html)
   end
 
   get "/roles" do
     roles = Cache.call({:roles})
-    resp = Poison.encode!(roles, pretty: true)
+    resp = Jason.encode!(roles, pretty: true)
       |> format_html
     send_resp(conn, 200, resp)
   end
 
   get "/role/log/:role_id" do
     role = Cache.call({:role_log, role_id})
-    resp = Poison.encode!(role, pretty: true) |> format_html
+    resp = Jason.encode!(role, pretty: true) |> format_html
     send_resp(conn, 200, resp)
   end
 
@@ -68,7 +68,7 @@ defmodule Jx3App.Server do
       nil -> not_found(conn)
       _ ->
         role = role |> Map.put(:name, "<role_id_log:#{role[:role_id]}>:" <> role[:name])
-        resp = Poison.encode!(role, pretty: true)
+        resp = Jason.encode!(role, pretty: true)
           |> format_html
         send_resp(conn, 200, resp)
     end
@@ -80,7 +80,7 @@ defmodule Jx3App.Server do
       nil -> not_found(conn)
       _ ->
         roles = person[:roles] |> Enum.map(fn [id|t] -> ["<role_id>:"<>id | t] end)
-        resp = Poison.encode!(person |> Map.put(:roles, roles), pretty: true)
+        resp = Jason.encode!(person |> Map.put(:roles, roles), pretty: true)
           |> format_html
         send_resp(conn, 200, resp)
     end
@@ -88,14 +88,14 @@ defmodule Jx3App.Server do
 
   get "/search/role/:role_name" do
     roles = Cache.call({:search_role, role_name})
-    resp = Poison.encode!(roles, pretty: true)
+    resp = Jason.encode!(roles, pretty: true)
       |> format_html
     send_resp(conn, 200, resp)
   end
 
   get "/search/kungfu/:kungfu" do
     roles = Cache.call({:search_kungfu, kungfu})
-    resp = Poison.encode!(roles, pretty: true)
+    resp = Jason.encode!(roles, pretty: true)
       |> format_html
     send_resp(conn, 200, resp)
   end
