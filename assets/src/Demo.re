@@ -1,1 +1,1 @@
-Js.log("Hello, BuckleScript and Reason!");
+ReactDOMRe.renderToElementWithId(<Component message="Hello! Click this text." />, "index1");

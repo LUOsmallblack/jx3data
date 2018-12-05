@@ -22,15 +22,22 @@ Replace `$HOME` to your home folder.
   "reason.path.rebuild": "$HOME/.opam/4.02.3+buckle-1/bin/rebuild",
   "reason.path.refmt": "$HOME/.opam/4.02.3+buckle-1/bin/refmt",
   "reason.path.refmterr": "$HOME/.opam/4.02.3+buckle-1/bin/refmterr",
-  "reason.path.rtop": "$HOME/.opam/4.02.3+buckle-1/bin/rtop"
+  "reason.path.rtop": "$HOME/.opam/4.02.3+buckle-1/bin/rtop",
+  "npm.packageManager": "yarn"
 }
+```
+
+# Development Note
+```
+$ yarn add reason-react
+$ yarn add --save rollup rollup-plugin-commonjs rollup-plugin-node-resolve
 ```
 
 # Build
 ```
 $ opam switch 4.02.3+buckle-1
 $ eval $(opam env)
-$ yarn build
+$ yarn build # start
 ```
 
 # Watch
