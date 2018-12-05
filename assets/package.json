@@ -15,11 +15,15 @@
   "license": "MIT",
   "devDependencies": {
     "bs-platform": "^4.0.8",
-    "rollup": "^0.67.4"
+    "rollup": "^0.67.4",
+    "rollup-plugin-alias": "^1.4.0",
+    "rollup-plugin-bucklescript": "^0.7.0",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-copy-glob": "^0.2.2",
+    "rollup-plugin-node-resolve": "^3.4.0",
+    "rollup-plugin-replace": "^2.1.0"
   },
   "dependencies": {
-    "reason-react": "^0.5.3",
-    "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-node-resolve": "^3.4.0"
+    "reason-react": "^0.5.3"
   }
 }

@@ -1,1 +1,1 @@
-ReactDOMRe.renderToElementWithId(<Component message="Hello! Click this text." />, "index1");
+ReactDOMRe.renderToElementWithId(<Search message="Hello! Click this text." />, "index1");

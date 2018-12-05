@@ -1,22 +1,37 @@
+import alias from 'rollup-plugin-alias';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
-// import { uglify } from 'rollup-plugin-uglify';
-
-// `npm run build` -> `production` is true
-// `npm run dev` -> `production` is false
-const production = !process.env.ROLLUP_WATCH;
+import replace from 'rollup-plugin-replace';
+import bucklescript from 'rollup-plugin-bucklescript';
+import copy from 'rollup-plugin-copy-glob';
 
 export default {
   input: 'src/Demo.bs.js',
   output: {
-    name: 'demo',
-    file: 'build/bundle.js',
+    name: 'viewer',
+    file: 'static/bundle.js',
     format: 'iife',
-    sourcemap: true
+    sourcemap: true,
+    globals: {
+      "react": "React",
+      "react-dom": "ReactDOM",
+    },
   },
   plugins: [
-    resolve(), // tells Rollup how to find date-fns in node_modules
-    commonjs(), // converts date-fns to ES modules
-    // production && uglify() // minify, but only in production
-  ]
+    copy([
+      { files: 'node_modules/react/umd/react.development.js', dest: "static" },
+      { files: 'node_modules/react-dom/umd/react-dom.development.js', dest: "static" },
+      { files: 'src/*.html', dest: "static" },
+    ], {verbose: true}),
+    bucklescript(),
+    alias({
+      resolve: ['.js', '.re']
+    }),
+    replace({
+      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+    }),
+    resolve(),
+    commonjs(),
+  ],
+  external: ['react', 'react-dom'],
 };
