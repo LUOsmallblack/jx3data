@@ -8,7 +8,7 @@ defmodule Jx3App.Server.Website do
     json_decoder: Jason
 
   plug :match
-  plug :dispatch
+  plug :dispatch, builder_opts()
 
   get "/" do
     Utils.redirect(conn, to: "/index.html")
@@ -19,10 +19,10 @@ defmodule Jx3App.Server.Website do
   end
 
   match _ do
-    not_found(conn)
+    not_found(conn, opts)
   end
 
-  def not_found(conn) do
+  def not_found(conn, _opts \\ []) do
     send_resp(conn, 404, "not found")
   end
 end

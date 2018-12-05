@@ -8,7 +8,7 @@ defmodule Jx3App.Server.Rest do
     json_decoder: Jason
 
   plug :match
-  plug :dispatch
+  plug :dispatch, builder_opts()
 
   @impl true
   def init(opts \\ [prefix: "/api"]) do
@@ -19,11 +19,6 @@ defmodule Jx3App.Server.Rest do
 
   @doc "TODO: work around before https://github.com/elixir-plug/plug/pull/794 checked in"
   def opts, do: init()
-
-  @impl true
-  def call(conn, opts) do
-    super(conn, opts)
-  end
 
   def html(str, opts \\ %{}) do
     prefix = opts[:prefix]

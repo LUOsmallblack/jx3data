@@ -3,6 +3,14 @@ defmodule Jx3App.Server do
   alias Jx3App.GraphQL
   alias Jx3App.Server.{Rest, Website}
 
+  defmodule Static do
+    # TODO: workaround before https://github.com/elixir-plug/plug/pull/795 checked in
+    use Plug.Builder, init_mode: :runtime
+    import Website, only: [not_found: 2]
+    plug Plug.Static, builder_opts()
+    plug :not_found
+  end
+
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json, Absinthe.Plug.Parser],
     pass: ["*/*"],
@@ -13,6 +21,8 @@ defmodule Jx3App.Server do
 
   forward "/api", to: Rest, init_opts: [prefix: "/api"]
 
+  forward "/static", to: Static, init_opts: [at: "/", from: "./assets/build"]
+
   forward "/graphiql", to: Absinthe.Plug.GraphiQL,
     init_opts: [schema: GraphQL.Schema]
 
@@ -20,8 +30,4 @@ defmodule Jx3App.Server do
     init_opts: [schema: GraphQL.Schema]
 
   match _, to: Website
-
-  def not_found(conn) do
-    send_resp(conn, 404, "not found" |> Rest.html)
-  end
 end
