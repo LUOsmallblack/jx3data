@@ -9,7 +9,9 @@
 <body>
   <?php $myTitle="home"; require("common/navbar.php"); ?>
 
-  <div id="summary"></div>
+  <div class="container">
+    <div id="summary"></div>
+  </div>
   <script src="/static/bundle.js"></script>
 </body>
 </html>
