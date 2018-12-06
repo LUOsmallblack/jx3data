@@ -5,3 +5,8 @@
   -o-user-select: none;
   user-select: none;
 }
+
+/* in bootstrap 4.2 */
+.overflow-auto {
+  overflow: auto !important;
+}
