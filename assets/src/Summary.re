@@ -12,7 +12,7 @@ module Badge = {
   let width = (left, right) => {
     let (left_len, right_len) = (String.length(left), String.length(right));
     let left_percent = float(left_len) /. float(left_len + right_len);
-    let len = switch ((left_len+right_len)*10) {
+    let len = switch (int_of_float(float(left_len+right_len)*.9.6)) {
     | t when t <= 80 => 80
     | t => t
     };
@@ -50,12 +50,20 @@ module Badge = {
 
 let component = ReasonReact.statelessComponent("Summary");
 
+let simply_string_of_int = (x) => switch x {
+| x when x < 1000 => string_of_int(x)
+| x when x < 1000*1000 => string_of_float(float(x/100)/.10.) ++ "K"
+| x when x < 1000*1000*1000 => string_of_float(float(x/(100*1000))/.10.) ++ "M"
+| x => string_of_float(float(x/(100*1000*1000))/.10.) ++ "B"
+}
+
 let make = (~summary: summary, _children) => {
   ...component,
   render: _ => {
+    let f = (x) => x(summary) |> simply_string_of_int;
     let (roles, persons, matches, fetched) =
-      (summary->roles, summary->persons, summary->matches, summary->fetched);
-    <div id="summary">
+      (f(rolesGet), f(personsGet), f(matchesGet), f(fetchedGet));
+    <div>
       <span className="mr-1"><Badge left="roles" right={j|$roles|j} /></span>
       <span className="mr-1"><Badge left="persons" right={j|$persons|j} /></span>
       <span className="mr-1"><Badge left="matches" right={j|$matches|j} /></span>
