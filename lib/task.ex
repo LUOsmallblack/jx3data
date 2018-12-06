@@ -62,6 +62,8 @@ defmodule Jx3App.Task do
             _ -> func.(x)
           end
           update_status(name, {:partial, i, count})
+        rescue
+          e -> {:error, e}
         catch
           :exit, e when e != :stop -> {:error, e}
         end
@@ -74,6 +76,24 @@ defmodule Jx3App.Task do
 
   def stop(name) do
     update_status(name, :stopping)
+  end
+
+  def do_resume(name, i, %{list: list, task: task} = t) do
+    if not Process.alive?(task) do
+      update_status(name, :finished)
+      update_status(name, :stopped)
+      start_task(%{t | list: list |> Enum.drop(i), status: :not_started})
+    else
+      :ok
+    end
+  end
+
+  def resume(name) do
+    case get(name) do
+      {:started, %{} = t} -> do_resume(name, 0, t)
+      {{:partial, i, _}, %{} = t} -> do_resume(name, i, t)
+      _ -> :error
+    end
   end
 
   def kill(name) do
