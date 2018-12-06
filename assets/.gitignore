@@ -5,5 +5,9 @@ npm-debug.log
 /lib/bs/
 /node_modules/
 yarn.lock
-*.bs.js
+src/*.bs.js
 static/
+html/*.php.html
+html/gen
+.ninja_log
+.ninja_deps

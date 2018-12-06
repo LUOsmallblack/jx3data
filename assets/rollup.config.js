@@ -5,6 +5,8 @@ import replace from 'rollup-plugin-replace';
 import bucklescript from 'rollup-plugin-bucklescript';
 import copy from 'rollup-plugin-copy-glob';
 
+const watch = process.env.ROLLUP_WATCH;
+
 export default {
   input: 'src/Demo.bs.js',
   output: {
@@ -26,7 +28,7 @@ export default {
       { files: 'node_modules/bootstrap/dist/js/bootstrap.js', dest: "static" },
       { files: 'node_modules/jquery/dist/jquery.js', dest: "static" },
       { files: 'node_modules/popper.js/dist/umd/popper.js', dest: "static" },
-    ], {verbose: true}),
+    ], {verbose: true, watch}),
     bucklescript(),
     alias({
       resolve: ['.js', '.re']

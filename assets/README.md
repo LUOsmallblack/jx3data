@@ -30,7 +30,11 @@ Replace `$HOME` to your home folder.
 # Development Note
 ```
 $ yarn add reason-react
-$ yarn add --save rollup rollup-plugin-commonjs rollup-plugin-node-resolve
+$ yarn add --dev rollup rollup-plugin-commonjs rollup-plugin-node-resolve
+$ yarn add --dev rollup-plugin-alias rollup-plugin-replace rollup-plugin-bucklescript rollup-plugin-copy-glob
+$ yarn add bootstrap jquery popper.js
+
+# pacman -S php php-tidy
 ```
 
 # Build

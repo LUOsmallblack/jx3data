@@ -1,0 +1,18 @@
+rule find_blobs
+  command = bash -c "ls $lsflags $pattern" | sed 's@$$ @$$$$ @g' | sed 's@ @$$ @g' | sed 's@:@$$:@g' > $out
+
+rule generate_ninja_inc
+  command = sed "s@.*@build \\0.html: php \\0 | php.ini `cat $header | tr '\n' ' '`@" $source > $out && $
+    echo "build all: phony `sed "s@.*@\\0.html@" $source | tr '\n' ' '`" >> $out
+
+rule generate_ninja
+  command = printf "include $in\nsubninja gen/inc.ninja\n" > $out
+
+rule php
+  command = php $phpflags $in > $out
+
+rule ninja
+  command = ninja -f $in all
+
+rule clean
+  command = ninja -f gen/build.ninja -t clean; ninja -t clean

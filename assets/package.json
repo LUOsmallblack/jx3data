@@ -2,11 +2,13 @@
   "name": "viewer",
   "version": "0.1.0",
   "scripts": {
+    "world": "yarn run build && yarn run html && yarn run rollup",
     "build": "bsb -make-world",
     "start": "bsb -make-world -w",
     "clean": "bsb -clean-world",
     "rollup": "rollup -c",
-    "rollup-w": "rollup -c -w"
+    "rollup-w": "rollup -c -w",
+    "html": "ninja -C html"
   },
   "keywords": [
     "BuckleScript"
