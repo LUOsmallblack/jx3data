@@ -9,8 +9,7 @@
 <body>
   <?php $myTitle="home"; require("common/navbar.php"); ?>
 
-  Component 1:
-  <div id="index1"></div>
+  <div id="summary"></div>
   <script src="/static/bundle.js"></script>
 </body>
 </html>

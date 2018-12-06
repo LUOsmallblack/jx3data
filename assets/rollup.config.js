@@ -23,7 +23,7 @@ export default {
     copy([
       { files: 'node_modules/react/umd/react.development.js', dest: "static" },
       { files: 'node_modules/react-dom/umd/react-dom.development.js', dest: "static" },
-      { files: 'html/*.{html, css}', dest: "static" },
+      { files: 'html/*.{html,css,jsonp}', dest: "static" },
       { files: 'node_modules/bootstrap/dist/css/bootstrap.css', dest: "static" },
       { files: 'node_modules/bootstrap/dist/js/bootstrap.js', dest: "static" },
       { files: 'node_modules/jquery/dist/jquery.js', dest: "static" },

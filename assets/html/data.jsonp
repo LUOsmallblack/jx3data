@@ -1,0 +1,8 @@
+example_data = {
+  "summary": {
+    "roles": 1134373,
+    "persons": 246641,
+    "matches": 5725122,
+    "fetched": 351629
+  }
+}

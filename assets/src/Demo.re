@@ -1,1 +1,3 @@
-ReactDOMRe.renderToElementWithId(<Search message="Hello! Click this text." />, "index1");
+[@bs.val] external summary : Summary.summary = "example_data.summary";
+
+ReactDOMRe.renderToElementWithId(<Summary summary />, "summary");
