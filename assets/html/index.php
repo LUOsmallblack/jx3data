@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <title>Jx3App Viewer</title>
 
-  <link rel="stylesheet" href="/static/bootstrap.css" />
-  <script src="/static/react.development.js"></script>
-  <script src="/static/react-dom.development.js"></script>
+  <?php require("common/head.php"); ?>
 </head>
 <body>
+  <?php $myTitle="home"; require("common/navbar.php"); ?>
+
   Component 1:
   <div id="index1"></div>
   <script src="/static/bundle.js"></script>
