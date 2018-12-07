@@ -7,12 +7,15 @@ defmodule Jx3App.GraphQL do
       Enum.map(l, &apply_prefix(&1, prefix))
     end
     def apply_prefix(%{__meta__: meta} = o, prefix) do
-      {_, q} = meta.source
-      %{o | __meta__: %{meta | source: {prefix, q}}}
+      %{o | __meta__: %{meta | prefix: prefix}}
     end
 
     def complexity(%{limit: limit}, child_complexity) do
       limit * child_complexity
+    end
+
+    def complexity(_, child_complexity) do
+      1 + child_complexity
     end
 
     def dataloader(source, ord \\ :one, opts \\ [])
@@ -22,9 +25,9 @@ defmodule Jx3App.GraphQL do
     def dataloader(source, {ord, key}, opts) do
       fn %schema{__meta__: meta} = o, _, %{context: %{loader: loader}} = res ->
         key = key || res.definition.schema_node.identifier
-        {prefix, _} = meta.source
-        prefix = Keyword.get(opts, :prefix, prefix)
-        {queryable, related_key, value} = case schema.__schema__(:association, key) do
+        # https://hexdocs.pm/ecto/Ecto.Schema.Metadata.html
+        prefix = Keyword.get(opts, :prefix, meta.prefix)
+        {queryable, related_key, value} = case schema.__schema__(:association, key) |> IO.inspect do
           %{queryable: queryable, owner_key: owner_key, related_key: related_key} ->
             owner_key = owner_key || key <> "_id"
             %{^owner_key => value} = o
@@ -45,6 +48,12 @@ defmodule Jx3App.GraphQL do
         limit: ^limit,
         offset: ^offset)
       {:ok, roles}
+    end
+
+    def role(_, args, _) do
+      role_id = args[:role_id]
+      role = Model.Repo.get(Model.Role, role_id)
+      {:ok, role}
     end
 
     def match_roles(%{role_id: role_id, match_type: match_type}, args, _) do
@@ -175,6 +184,13 @@ defmodule Jx3App.GraphQL do
         arg :offset, :integer, default_value: 0
         complexity &Resolvers.complexity/2
         resolve &Resolvers.roles/3
+      end
+
+      @desc "Get role use role_id"
+      field :role, :role do
+        arg :role_id, :string
+        complexity &Resolvers.complexity/2
+        resolve &Resolvers.role/3
       end
 
       @desc "Get all matches"

@@ -24,10 +24,10 @@ defmodule Jx3App.Server do
   forward "/static", to: Static, init_opts: [at: "/", from: "./assets/build"]
 
   forward "/graphiql", to: Absinthe.Plug.GraphiQL,
-    init_opts: [schema: GraphQL.Schema]
+    init_opts: [schema: GraphQL.Schema, json_codec: Jason]
 
   forward "/graphql", to: Absinthe.Plug,
-    init_opts: [schema: GraphQL.Schema]
+    init_opts: [schema: GraphQL.Schema, json_codec: Jason]
 
   match _, to: Website
 end
