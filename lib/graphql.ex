@@ -27,7 +27,7 @@ defmodule Jx3App.GraphQL do
         key = key || res.definition.schema_node.identifier
         # https://hexdocs.pm/ecto/Ecto.Schema.Metadata.html
         prefix = Keyword.get(opts, :prefix, meta.prefix)
-        {queryable, related_key, value} = case schema.__schema__(:association, key) |> IO.inspect do
+        {queryable, related_key, value} = case schema.__schema__(:association, key) do
           %{queryable: queryable, owner_key: owner_key, related_key: related_key} ->
             owner_key = owner_key || key <> "_id"
             %{^owner_key => value} = o
@@ -44,9 +44,11 @@ defmodule Jx3App.GraphQL do
     def roles(_, args, _) do
       limit = args[:limit] || 200
       offset = args[:offset] || 0
-      roles = Model.Repo.all(from r in Model.Role,
+      roles = from(r in Model.Role,
         limit: ^limit,
         offset: ^offset)
+        |> Jx3App.Model.Dynamic.query(args)
+        |> Model.Repo.all
       {:ok, roles}
     end
 
@@ -117,6 +119,7 @@ defmodule Jx3App.GraphQL do
       field :matches, list_of(:match_role) do
         arg :limit, :integer, default_value: 200
         arg :offset, :integer, default_value: 0
+        arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.match_roles/3
       end
@@ -125,7 +128,7 @@ defmodule Jx3App.GraphQL do
 
   defmodule Match do
     use Absinthe.Schema.Notation
-    import Absinthe.Resolution.Helpers, only: [dataloader: 1, dataloader: 2]
+    import Absinthe.Resolution.Helpers, only: [dataloader: 1, dataloader: 3]
 
     object :match do
       field :start_time, :integer
@@ -139,7 +142,7 @@ defmodule Jx3App.GraphQL do
       field :team2_kungfu, list_of(:integer)
       field :winner, :integer
       field :role_ids, list_of(:string)
-      field :roles, list_of(:match_role), resolve: Resolvers.dataloader(:db, {:many, :roles})
+      field :roles, list_of(:match_role), resolve: dataloader(:db)
     end
 
     object :match_role do
@@ -157,8 +160,8 @@ defmodule Jx3App.GraphQL do
       field :talents, list_of(:integer)
       field :attrs_version, :integer
       field :attrs, list_of(:float)
-      field :match, :match, resolve: Resolvers.dataloader(:db, {:one, :match})
-      field :role, :role, resolve: Resolvers.dataloader(:db, :one, prefix: nil)
+      field :match, :match, resolve: dataloader(:db)
+      field :role, :role, resolve: dataloader(:db_public, :role, args: %{prefix: "public"})
     end
   end
 
@@ -168,8 +171,10 @@ defmodule Jx3App.GraphQL do
     import_types Match
 
     def context(ctx) do
-      source = Dataloader.Ecto.new(Jx3App.Model.Repo)
-      loader = Dataloader.new |> Dataloader.add_source(:db, source)
+      source = Dataloader.Ecto.new(Jx3App.Model.Repo, query: &Jx3App.Model.Dynamic.query/2)
+      # TODO: https://github.com/absinthe-graphql/dataloader/issues/61
+      source2 = Dataloader.Ecto.new(Jx3App.Model.Repo, query: &Jx3App.Model.Dynamic.query/2, repo_opts: [prefix: "public"])
+      loader = Dataloader.new |> Dataloader.add_source(:db, source) |> Dataloader.add_source(:db_public, source2)
       Map.put(ctx, :loader, loader)
     end
 
@@ -182,6 +187,7 @@ defmodule Jx3App.GraphQL do
       field :roles, list_of(:role) do
         arg :limit, :integer, default_value: 200
         arg :offset, :integer, default_value: 0
+        arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.roles/3
       end
@@ -189,6 +195,7 @@ defmodule Jx3App.GraphQL do
       @desc "Get role use role_id"
       field :role, :role do
         arg :role_id, :string
+        arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.role/3
       end
@@ -197,6 +204,7 @@ defmodule Jx3App.GraphQL do
       field :matches, list_of(:match) do
         arg :limit, :integer, default_value: 20
         arg :offset, :integer, default_value: 0
+        arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.matches/3
       end

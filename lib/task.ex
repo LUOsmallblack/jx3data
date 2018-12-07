@@ -78,11 +78,11 @@ defmodule Jx3App.Task do
     update_status(name, :stopping)
   end
 
-  def do_resume(name, i, %{list: list, task: task} = t) do
+  def do_resume(name, i, %{list: list, count: count, task: task} = t) do
     if not Process.alive?(task) do
       update_status(name, :finished)
       update_status(name, :stopped)
-      start_task(%{t | list: list |> Enum.drop(i), status: :not_started})
+      start_task(%{t | list: list |> Enum.drop(i), count: count-i, status: :not_started})
     else
       :ok
     end
