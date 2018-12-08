@@ -60,6 +60,14 @@ defmodule Jx3App.Utils do
   def unstruct(%{} = o), do: o
   def unstruct(_), do: %{}
 
+  def put_default(%{} = o, k, v) do
+    if is_nil(Map.get(o, k)) do
+      Map.put(o, k, v)
+    else
+      o
+    end
+  end
+
   def filter_into(a, b \\ %{}) do
     a |> Enum.filter(fn {_, v} -> v != nil end) |> Enum.into(b |> unstruct)
   end

@@ -12,12 +12,12 @@ defmodule Jx3App.Model.Dynamic do
     params = Sql.Builder.escape_params(params)
 
     %Ecto.Query.DynamicExpr{fun: fn query ->
-      _ = query
-      {unescape(expr), unescape(params)}
-    end,
-    binding: binding,
-    file: env.file,
-    line: env.line}
+        _ = query
+        {unescape(expr), unescape(params)}
+      end,
+      binding: binding,
+      file: env.file,
+      line: env.line}
   end
 
   # https://github.com/elixir-lang/elixir/blob/master/lib/elixir/src/elixir_quote.erl
@@ -30,9 +30,11 @@ defmodule Jx3App.Model.Dynamic do
   def unescape(x) when is_list(x), do: Enum.map(x, &unescape/1)
   def unescape(x) when not is_tuple(x), do: x
 
+  @supported_opts ~w(prefix where limit offset)a
+
   def query(query, opts) do
-    clause = opts |> Keyword.new
-    IO.inspect({query, opts})
+    clause = for k <- @supported_opts, v = opts[k], do: {k, v}
+    IO.inspect({query, clause})
     do_query_each(query, clause) |> IO.inspect
   end
 
@@ -58,7 +60,7 @@ defmodule Jx3App.Model.Dynamic do
   def do_query(query, {:where, where}) when is_binary(where) do
     dynamic = case Code.string_to_quoted(where) do
       {:ok, ast} -> build(ast)
-      _ -> false
+      _ -> throw "invalid query string"
     end
     query |> Sql.where(^dynamic)
   end

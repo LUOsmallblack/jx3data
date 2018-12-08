@@ -1,7 +1,7 @@
 defmodule Jx3App.GraphQL do
   defmodule Resolvers do
     import Ecto.Query
-    alias Jx3App.Model
+    alias Jx3App.{Model, Utils}
 
     def apply_prefix(l, prefix) when is_list(l) do
       Enum.map(l, &apply_prefix(&1, prefix))
@@ -18,36 +18,13 @@ defmodule Jx3App.GraphQL do
       1 + child_complexity
     end
 
-    def dataloader(source, ord \\ :one, opts \\ [])
-    def dataloader(source, ord, opts) when ord in [:one, :many] do
-      dataloader(source, {ord, nil}, opts)
-    end
-    def dataloader(source, {ord, key}, opts) do
-      fn %schema{__meta__: meta} = o, _, %{context: %{loader: loader}} = res ->
-        key = key || res.definition.schema_node.identifier
-        # https://hexdocs.pm/ecto/Ecto.Schema.Metadata.html
-        prefix = Keyword.get(opts, :prefix, meta.prefix)
-        {queryable, related_key, value} = case schema.__schema__(:association, key) do
-          %{queryable: queryable, owner_key: owner_key, related_key: related_key} ->
-            owner_key = owner_key || key <> "_id"
-            %{^owner_key => value} = o
-            {queryable, related_key, value}
-        end
-        batch_key = {ord, prefix && Ecto.Query.subquery(queryable, prefix: prefix) || queryable}
-        loader |> Dataloader.load(source, batch_key, [{related_key, value}])
-        |> Absinthe.Resolution.Helpers.on_load(fn loader ->
-          result = Dataloader.get(loader, source, batch_key, [{related_key, value}]) |> apply_prefix(prefix)
-          {:ok, result} end)
-      end
-    end
-
     def roles(_, args, _) do
       limit = args[:limit] || 200
       offset = args[:offset] || 0
       roles = from(r in Model.Role,
         limit: ^limit,
         offset: ^offset)
-        |> Jx3App.Model.Dynamic.query(args)
+        |> Model.Dynamic.query(args)
         |> Model.Repo.all
       {:ok, roles}
     end
@@ -59,26 +36,22 @@ defmodule Jx3App.GraphQL do
     end
 
     def match_roles(%{role_id: role_id, match_type: match_type}, args, _) do
-      limit = args[:limit] || 20
-      offset = args[:offset] || 0
-      match_roles = Model.Repo.all(
-        from(m in Model.MatchRole,
-          where: m.role_id == ^role_id,
-          limit: ^limit,
-          offset: ^offset),
-        prefix: Model.Match.prefix(match_type))
+      args = args |> Utils.put_default(:limit, 20) |> Utils.put_default(:offset, 0)
+                  |> Utils.put_default(:prefix, Model.Match.prefix(match_type))
+      match_roles = from(m in Model.MatchRole,
+          where: m.role_id == ^role_id)
+          |> Model.Dynamic.query(args)
+          |> Model.Repo.all
       {:ok, match_roles}
     end
 
     def matches(_, args, _) do
-      limit = args[:limit] || 20
-      offset = args[:offset] || 0
-      matches = Model.Repo.all(
-        from(m in Model.Match,
-          order_by: [fragment("? DESC NULLS LAST", m.start_time)],
-          limit: ^limit,
-          offset: ^offset),
-        prefix: Model.Match.prefix("3c"))
+      args = args |> Utils.put_default(:limit, 20) |> Utils.put_default(:offset, 0)
+                  |> Utils.put_default(:prefix, Model.Match.prefix(args[:match_type] || "3c"))
+      matches = from(m in Model.Match,
+        order_by: [fragment("? DESC NULLS LAST", m.start_time)])
+        |> Model.Dynamic.query(args)
+        |> Model.Repo.all
       {:ok, matches}
     end
   end
@@ -195,7 +168,6 @@ defmodule Jx3App.GraphQL do
       @desc "Get role use role_id"
       field :role, :role do
         arg :role_id, :string
-        arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.role/3
       end
@@ -204,6 +176,7 @@ defmodule Jx3App.GraphQL do
       field :matches, list_of(:match) do
         arg :limit, :integer, default_value: 20
         arg :offset, :integer, default_value: 0
+        arg :match_type, :string, default_value: "3c"
         arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.matches/3
