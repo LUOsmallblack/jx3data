@@ -18,6 +18,7 @@ create_user_image() {
   docker run --name "$CONTAINER_ID" -it -d "$@" orientdb /bin/sh
   docker exec "$CONTAINER_ID" addgroup -g $(id -g) user
   docker exec "$CONTAINER_ID" adduser -D -u $(id -u) user -G user
+  docker exec "$CONTAINER_ID" apk add --update ncurses
   # docker exec "$CONTAINER_ID" addgroup user tty
   # docker exec "$CONTAINER_ID" chown -R user:user /orientdb
   # docker exec "$CONTAINER_ID" mkdir -p /orientdb/backup /orientdb/databases /orientdb/config
@@ -42,10 +43,11 @@ create_force() {
   touch "$model_dir/backup/.keep" "$model_dir/databases/.keep"
   # https://stackoverflow.com/questions/39496564/docker-volume-custom-mount-point
   docker create -u "$(id -u):$(id -g)" "$@" \
+    -e JAVA_OPTS='-Duser.home=/orientdb/log' \
     --mount type=volume,dst=/orientdb/backup,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/backup" \
     --mount type=volume,dst=/orientdb/databases,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/databases" \
     --mount type=volume,dst=/orientdb/config,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/config" \
-    "orientdb:user_$(id -u)" > "$model_dir/container.id.tmp"
+    orientdb > "$model_dir/container.id.tmp"
   mv "$model_dir/container.id.tmp" "$model_dir/container.id"
   chown "$(id -u):$(id -g)" model/config
   CONTAINER_ID=$(cat "$model_dir/container.id")
@@ -91,6 +93,9 @@ sudo_bash() {
 }
 
 console() {
+  # work around: acting as home folder
+  # docker-exec exec -it -u root:root {} sh -c "mkdir -p ? && chown $(id -u):$(id -g) ?"
+  docker-exec exec -it -u root:root {} sh -c '[ -f "/usr/bin/tput" ] || apk add --update ncurses'
   docker-exec exec -it {} /orientdb/bin/console.sh
 }
 
