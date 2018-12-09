@@ -64,3 +64,9 @@ _build/prod/rel/jx3app/bin/jx3app start
     # redis-cli -p 5734 flushdb
     redis-cli -p 5734 shutdown
     ```
+
+3. orientdb
+    ```shell
+    docker pull orientdb
+    sh model/start.sh create --name jx3app-model -p 2424:5735 -p 2400:5736
+    ```

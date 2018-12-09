@@ -29,6 +29,9 @@ db/cache/*
 !db/executor
 db/executor/*
 !db/executor/spark-env.sh
+!db/model
+db/model/*
+!db/model/start.sh
 config/secret.exs
 rel/secret.cookie
 log
