@@ -68,7 +68,7 @@ _build/prod/rel/jx3app/bin/jx3app start
 3. orientdb
     ```shell
     docker pull orientdb
-    bash model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
-    # start/stop/clean/logs
-    bash model/start.sh start
+    model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
+    # start/stop/clean/logs/console
+    model/start.sh start
     ```

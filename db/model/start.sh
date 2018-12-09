@@ -1,7 +1,7 @@
-#!/bin/bssh
+#!/bin/bash
 # systemctl start docker
 # docker pull orientdb
-# bash model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
+# model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
 set -e
 shopt -s expand_aliases
 alias create-force="create_force"
@@ -11,7 +11,7 @@ alias clean-force="clean_force"
 SCRIPT=$(realpath -s $0)
 model_full_path=$(dirname $SCRIPT)
 model_dir=$(dirname $0)
-mkdir -p "$model_dir/backup" "$model_dir/databases" "$model_dir/config"
+mkdir -p "$model_dir"/{backup,databases,config}
 
 create_user_image() {
   CONTAINER_ID="orientdb_user_$(id -u)"
@@ -40,7 +40,7 @@ clean_user_image() {
 
 create_force() {
   # workaround for backup and databases owner
-  touch "$model_dir/backup/.keep" "$model_dir/databases/.keep"
+  touch "$model_dir"/{backup,databases}/.keep
   # https://stackoverflow.com/questions/39496564/docker-volume-custom-mount-point
   docker create -u "$(id -u):$(id -g)" "$@" \
     -e JAVA_OPTS='-Duser.home=/orientdb/log' \
