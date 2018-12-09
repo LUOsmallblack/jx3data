@@ -55,7 +55,7 @@ _build/prod/rel/jx3app/bin/jx3app start
     pg_dump -Fc -p5733 jx3app > dump.sql
     pg_restore -a -p5733 -djx3app dump.sql --disable-triggers
     psql -p5733 jx3app # -s (step)
-    # use "-h/tmp/postgresql" to specific pid folder
+    # use "-h/tmp/postgresql" to specific pid folder, or use "-hlocalhost" when connect
     ```
 2. redis
     ```shell
@@ -68,5 +68,7 @@ _build/prod/rel/jx3app/bin/jx3app start
 3. orientdb
     ```shell
     docker pull orientdb
-    sh model/start.sh create --name jx3app-model -p 2424:5735 -p 2400:5736
+    bash model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
+    # start/stop/clean/logs
+    bash model/start.sh start
     ```
