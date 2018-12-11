@@ -14,10 +14,11 @@ model_dir=$(dirname $0)
 mkdir -p "$model_dir"/{backup,databases,config}
 
 create_user_image() {
+  USER=$(id -un)
   CONTAINER_ID="orientdb_user_$(id -u)"
   docker run --name "$CONTAINER_ID" -it -d "$@" orientdb /bin/sh
-  docker exec "$CONTAINER_ID" addgroup -g $(id -g) user
-  docker exec "$CONTAINER_ID" adduser -D -u $(id -u) user -G user
+  docker exec "$CONTAINER_ID" addgroup -g $(id -g) $USER
+  docker exec "$CONTAINER_ID" adduser -D -u $(id -u) $USER -G $USER
   docker exec "$CONTAINER_ID" apk add --update ncurses
   # docker exec "$CONTAINER_ID" addgroup user tty
   # docker exec "$CONTAINER_ID" chown -R user:user /orientdb
@@ -39,11 +40,12 @@ clean_user_image() {
 }
 
 create_force() {
+  USER=$(id -un)
   # workaround for backup and databases owner
   touch "$model_dir"/{backup,databases}/.keep
   # https://stackoverflow.com/questions/39496564/docker-volume-custom-mount-point
   docker create -u "$(id -u):$(id -g)" "$@" \
-    -e JAVA_OPTS='-Duser.home=/orientdb/log' \
+    -e JAVA_OPTS="-Duser.home=/orientdb/log -Duser.name=$USER" \
     --mount type=volume,dst=/orientdb/backup,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/backup" \
     --mount type=volume,dst=/orientdb/databases,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/databases" \
     --mount type=volume,dst=/orientdb/config,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/config" \
@@ -97,11 +99,32 @@ sudo_bash() {
   docker-exec exec -it -u root:root {} /bin/sh "$@"
 }
 
+random_password() {
+  if [[ ! -f "$model_dir/password" ]]; then
+    < /dev/urandom head -c33 | base64 > "$model_dir/password"
+    chmod 400 "$model_dir/password"
+  fi
+  echo "$model_dir/password"
+}
+
+initdb() {
+  USER=$(id -un)
+  DATABASE=$1
+  DATABASE=${DATABASE:-$USER}
+  PASSWORD=$2
+  PASSWORD=${PASSWORD:-$(cat "$(random_password)")}
+  # COMMAND="set server user <user> <password> '*'; create database remote:localhost/<user> <user> <password> plocal document"
+  COMMAND="set server user <user> <password> '*'; create database plocal:/orientdb/databases/<database>"
+  echo "init using command: $COMMAND"
+  COMMAND=$(echo "$COMMAND" | tr '\n' ';' | sed "s|<user>|${USER//|/\\|}|g" | sed "s|<password>|${PASSWORD//|/\\|}|g" |
+    sed "s|<database>|${DATABASE//|/\\|}|g" )
+  console "$COMMAND"
+}
+
 console() {
-  # work around: acting as home folder
-  # docker-exec exec -it -u root:root {} sh -c "mkdir -p ? && chown $(id -u):$(id -g) ?"
-  docker-exec exec -it -u root:root {} sh -c '[ -f "/usr/bin/tput" ] || apk add --update ncurses'
-  docker-exec exec -it {} /orientdb/bin/console.sh
+  # docker-exec exec -it -u root:root {} sh -c '[ -f "/usr/bin/tput" ] || apk add --update ncurses'
+  # work around: https://github.com/orientechnologies/orientdb/issues/7267
+  docker-exec exec -it -w /orientdb/config {} /orientdb/bin/console.sh "$@"
 }
 
 docker_exec() {
@@ -140,5 +163,6 @@ clean_force() {
 
 cmd=$1
 cmd=${cmd//-/_}
+typeset -f | awk '/ \(\) $/ && !/^main / {print $1}' | grep "^$cmd\$" > /dev/null
 shift
 $cmd "$@"
