@@ -49,7 +49,8 @@ create_force() {
     --mount type=volume,dst=/orientdb/config,volume-driver=local,volume-opt=type=none,volume-opt=o=bind,volume-opt=device="$model_full_path/config" \
     orientdb > "$model_dir/container.id.tmp"
   mv "$model_dir/container.id.tmp" "$model_dir/container.id"
-  chown "$(id -u):$(id -g)" model/config
+  chown -R "$(id -u):$(id -g)" model/config
+  chmod -R go-rwx model/config
   CONTAINER_ID=$(cat "$model_dir/container.id")
   # PID=$(docker inspect --format "{{.State.Pid}}" "$CONTAINER_ID")
   # sed -i '|"Cmd":\["/bin/sh"\]|{s|"Cmd":\["/bin/sh"\]|"Cmd":["server.sh"]|g}; !{q1}' /var/lib/docker/containers/$CONTAINER_ID/config.v2.json
@@ -84,6 +85,10 @@ logs() {
   docker-exec logs "$@"
 }
 
+status() {
+  docker-exec ps -a --filter=id={}
+}
+
 bash() {
   docker-exec exec -it {} /bin/sh "$@"
 }
@@ -103,7 +108,7 @@ docker_exec() {
   if [[ -f "$model_dir/container.id" ]]; then
     CONTAINER_ID=$(cat "$model_dir/container.id")
     if [[ "\t$@\t" =~ "{}" ]]; then
-      docker "${@//\{\}/$CONTAINER_ID/}"
+      docker "${@//\{\}/$CONTAINER_ID}"
     else
       docker "$@" $CONTAINER_ID
     fi
