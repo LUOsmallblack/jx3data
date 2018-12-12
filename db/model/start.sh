@@ -124,7 +124,15 @@ initdb() {
 console() {
   # docker-exec exec -it -u root:root {} sh -c '[ -f "/usr/bin/tput" ] || apk add --update ncurses'
   # work around: https://github.com/orientechnologies/orientdb/issues/7267
-  docker-exec exec -it -w /orientdb/config {} /orientdb/bin/console.sh "$@"
+  if [ "x$1" = "x-it" ]; then
+    IT="-it"
+    shift
+  elif [ "x$1" = "x" ]; then
+    IT="-it"
+  else
+    IT="-t"
+  fi
+  docker-exec exec $IT -w /orientdb/config {} /orientdb/bin/console.sh "$@"
 }
 
 docker_exec() {
@@ -163,6 +171,6 @@ clean_force() {
 
 cmd=$1
 cmd=${cmd//-/_}
-typeset -f | awk '/ \(\) $/ && !/^main / {print $1}' | grep "^$cmd\$" > /dev/null
+typeset -f | awk '/ \(\) $/ {print $1}' | grep "^$cmd\$" > /dev/null
 shift
 $cmd "$@"
