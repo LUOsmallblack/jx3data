@@ -57,8 +57,11 @@ _build/prod/rel/jx3app/bin/jx3app start
     # createdb/dropdb -p5733 jx3app
     pg_dump -Fc -p5733 jx3app > dump.sql
     pg_restore -a -p5733 -djx3app dump.sql --disable-triggers
-    psql -p5733 jx3app # -s (step)
     # use "-h/tmp/postgresql" to specific pid folder, or use "-hlocalhost" when connect
+    psql -p5733 jx3app # -s (step)
+
+    # inside jx3app, create role with name as the user tp run apache-spark
+    jx3app# CREATE ROLE "apache-spark" LOGIN;
     ```
 2. redis
     ```shell
