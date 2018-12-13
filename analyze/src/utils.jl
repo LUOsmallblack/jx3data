@@ -95,7 +95,7 @@ function jdcall(obj::Union{JavaObject{C}, Type{JavaObject{C}}}, name::AbstractSt
         rettype, argstype = jdcall_cache(obj, name, args...)
         return jcall(obj, name, rettype, argstype, args...)
     end
-    @info("using cached $(@which jdcall_cached(obj, Val(Symbol(name)), args...))")
+    # @info("using cached $(@which jdcall_cached(obj, Val(Symbol(name)), args...))")
     return @show jdcall_cached(obj, Val(Symbol(name)), args...)
 end
 
@@ -140,11 +140,10 @@ function macro_javacall(trans_term, trans_call, expr)
         trans_term(expr)
     end
     change(expr) = trans_term(expr)
-    @show :(_narrow($(esc(change(expr)))))
+    :(_narrow($(esc(change(expr)))))
 end
 
 try_wrap(x) = x
-try_wrap(x::Spark.JDataset) = Dataset(x)
 
 macro spark(expr)
     function apply_args(args)

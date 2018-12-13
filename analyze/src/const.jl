@@ -1,4 +1,4 @@
-using DataFrames
+using DataFrames, Spark
 
 kungfu_cn_map = Dict(
     :xisui => ("洗髓", "洗"),
@@ -60,3 +60,7 @@ function kungfu_isless(x, y)
         kungfu_order_map[x] < kungfu_order_map[y]
     end
 end
+
+init_const(spark, items) = global kungfu_items = init_kungfu_items(spark, items)
+
+show_kungfus(xs) = join(sort(kungfu_items[[findfirst(x .== kungfu_items[:id]) for x in xs],:], :content; lt=kungfu_isless)[:short])
