@@ -34,7 +34,9 @@ Elixir should be installed in order to compile and run the code.
 ```shell
 # install dependencies
 mix deps.get
-# create schema in postgresql
+# create databses in postgresql
+mix ecto.create
+# create schema in postgresql (or ecto.rollback to roll back)
 mix ecto.migrate
 # test
 mix test
@@ -51,7 +53,8 @@ _build/prod/rel/jx3app/bin/jx3app start
     pg_ctl -D data initdb
     # start/stop/restart
     pg_ctl -D data -o "-p5733" -l postgres.log start
-    createdb -p5733 jx3app # dropdb
+    # user mix ecto.create/ecto.drop instead
+    # createdb/dropdb -p5733 jx3app
     pg_dump -Fc -p5733 jx3app > dump.sql
     pg_restore -a -p5733 -djx3app dump.sql --disable-triggers
     psql -p5733 jx3app # -s (step)
