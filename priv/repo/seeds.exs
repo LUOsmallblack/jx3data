@@ -1,1 +1,1 @@
-Model.Repo.insert!(%Model.Person{person_id: "unknown", avatar: "", name: "", passport_id: "", signature: ""}, timestamps: true)
+Jx3App.Model.Repo.insert!(%Jx3App.Model.Person{person_id: "unknown", avatar: "", name: "", passport_id: "", signature: ""}, timestamps: true)

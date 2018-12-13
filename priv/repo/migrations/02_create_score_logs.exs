@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.CreateScoreLogs do
+defmodule Jx3App.Model.Repo.Migrations.CreateScoreLogs do
   use Ecto.Migration
 
   def change do

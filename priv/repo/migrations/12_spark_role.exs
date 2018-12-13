@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.CreateSparkRole do
+defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
   use Ecto.Migration
 
   def execute_all(up, down) when is_binary(down), do: execute_all(up, String.split(down, ";"))

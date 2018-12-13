@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.CreateIndexes do
+defmodule Jx3App.Model.Repo.Migrations.CreateIndexes do
   use Ecto.Migration
 
   def change do

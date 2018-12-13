@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.CreateRoleKungfus do
+defmodule Jx3App.Model.Repo.Migrations.CreateRoleKungfus do
   use Ecto.Migration
 
   def change do

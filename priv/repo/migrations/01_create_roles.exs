@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.CreateRoles do
+defmodule Jx3App.Model.Repo.Migrations.CreateRoles do
   use Ecto.Migration
 
   def change do

@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.TransferRolePassportData do
+defmodule Jx3App.Model.Repo.Migrations.TransferRolePassportData do
   use Ecto.Migration
   import Ecto.Query
   alias Jx3App.Model
@@ -18,10 +18,10 @@ defmodule Model.Repo.Migrations.TransferRolePassportData do
     from(r in Model.Role,
       where: not is_nil(r.passport_id),
       select: [:global_id, :passport_id, :updated_at])
-    |> Model.Repo.all
+    |> Jx3App.Model.Repo.all
     |> Enum.map(fn r ->
       %{global_id: r.global_id, passport_id: r.passport_id, inserted_at: r.updated_at}
-    end) |> Enum.chunk_every(1000) |> Enum.map(&Model.Repo.insert_all(RolePassportLog, &1))
+    end) |> Enum.chunk_every(1000) |> Enum.map(&Jx3App.Model.Repo.insert_all(RolePassportLog, &1))
   end
   def down do
 

@@ -1,4 +1,4 @@
-defmodule Model.Repo.Migrations.FixMatchSchema do
+defmodule Jx3App.Model.Repo.Migrations.FixMatchSchema do
   use Ecto.Migration
 
   def change do
