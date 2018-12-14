@@ -19,7 +19,7 @@ defmodule Jx3App.Server.Website do
   end
 
   match _ do
-    not_found(conn, opts)
+    not_found(conn, [])
   end
 
   def not_found(conn, _opts \\ []) do
