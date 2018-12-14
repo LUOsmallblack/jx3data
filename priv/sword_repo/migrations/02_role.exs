@@ -1,4 +1,4 @@
-defmodule Jx3App.Sword.Repo.Migrations.CreateLoginRole do
+defmodule Jx3App.Sword.SwordRepo.Migrations.CreateLoginRole do
   use Ecto.Migration
 
   def change do

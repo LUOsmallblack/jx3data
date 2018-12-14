@@ -1,4 +1,4 @@
-defmodule Jx3App.Sword.Repo do
+defmodule Jx3App.Sword.SwordRepo do
   use Ecto.Repo,
     otp_app: :jx3app,
     adapter: Ecto.Adapters.Postgres,
@@ -6,5 +6,6 @@ defmodule Jx3App.Sword.Repo do
 end
 
 defmodule Jx3App.Sword.Data do
+  alias Jx3App.Sword.SwordRepo, as: Repo
   def data, do: %{}
 end

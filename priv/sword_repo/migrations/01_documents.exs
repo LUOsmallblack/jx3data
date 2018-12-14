@@ -1,4 +1,4 @@
-defmodule Jx3App.Sword.Repo.Migrations.CreateDocuments do
+defmodule Jx3App.Sword.SwordRepo.Migrations.CreateDocuments do
   use Ecto.Migration
 
   def change do
