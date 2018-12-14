@@ -39,10 +39,10 @@ config :logger, :error_log,
 
 config :jx3app, Jx3App.Model.Repo, []
 
-config :jx3app, Jx3App.Model.SwordRepo, []
+config :jx3app, Jx3App.Sword.Repo, []
 
 config :jx3app,
-  ecto_repos: [Jx3App.Model.Repo, Jx3App.Model.SwordRepo]
+  ecto_repos: [Jx3App.Model.Repo, Jx3App.Sword.Repo]
 
 config :jx3app, Jx3App.Cache,
   redis: []
