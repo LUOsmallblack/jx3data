@@ -38,7 +38,7 @@ new_spcl() = new_spcl(get_current_classloader())
 new_spcl(parent) = @jimport(javacall.SpecialClassLoader)((Array{JURL, 1}, JClassLoader), [], parent)
 
 function JavaCall._metaclass(class::Symbol)
-    jclass = JavaCall.javaclassname(@show class)
+    jclass = JavaCall.javaclassname(class)
     jclassptr = if classloader == nothing || class == Symbol("java.lang.Class")
         ccall(JavaCall.jnifunc.FindClass, Ptr{Nothing}, (Ptr{JavaCall.JNIEnv}, Ptr{UInt8}), JavaCall.penv, jclass)
     else

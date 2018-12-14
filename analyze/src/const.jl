@@ -1,5 +1,7 @@
 using DataFrames, Spark
 
+export init_const, show_kungfus
+
 kungfu_cn_map = Dict(
     :xisui => ("洗髓", "洗"),
     :yijin => ("易经", "秃"),

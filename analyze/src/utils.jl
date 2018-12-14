@@ -1,5 +1,7 @@
 using JavaCall, JSON, DataFrames
 
+export parse_json, dump_json, @spark, @java, @col
+
 convertible(::Type{JavaObject{T}}, ::Type{JavaObject{S}}) where {T, S} = JavaCall.isConvertible(T, S)
 convertible(::Type{T}, juliatype::Type) where T <: JavaCall.jprimitive = juliatype == T
 convertible(javatype::Type{JavaObject{T}}, juliatype::Type{S}) where {T, S} = hasmethod(convert, Tuple{Type{javatype}, juliatype})

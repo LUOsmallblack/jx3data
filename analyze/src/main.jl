@@ -1,5 +1,7 @@
 using Spark
 
+export connect_spark, load_db, init_kungfu_items, split_team, grade_count, match_grade, match_count, kungfu_weight
+
 try_wrap(x::Spark.JDataset) = Dataset(x)
 
 function download_jars()
@@ -27,6 +29,8 @@ function connect_spark(master, conf)
     spark = SparkSession(master=master; config=conf)
     # spark = SparkSession(master="local")
     sc = Spark.context(spark)
+    # @show Spark.set_log_level(sc, "WARN")
+    @java sc.jsc.setLogLevel("WARN")
     # Spark.checkpoint_dir!(sc, "/tmp/spark")
     Spark.add_jar(sc, "jars/postgresql-42.2.5.jar")
     return spark
