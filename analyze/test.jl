@@ -10,6 +10,7 @@ Pkg.activate(".")
 #%%
 # using Revise
 using spark
+import Spark, JavaCall
 
 spark.init()
 my_spark = spark.connect_spark("spark://clouds-sp:7077")

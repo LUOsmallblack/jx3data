@@ -140,7 +140,7 @@ function macro_javacall(trans_term, trans_call, expr)
         trans_term(expr)
     end
     change(expr) = trans_term(expr)
-    :(_narrow($(esc(change(expr)))))
+    :(_narrow($(change(expr))))
 end
 
 try_wrap(x) = x
@@ -165,13 +165,13 @@ macro spark(expr)
         end
         return args
     end
-    trans_term(expr::Symbol) = :($(expr).jdf)
+    trans_term(expr::Symbol) = :($(esc(expr)).jdf)
     function trans_call(base, method, args)
         args = apply_args(args)
         if isa(args, Array)
-            :(jdcall($(base), $(string(method)), $(args...)))
+            :(jdcall($(base), $(string(method)), $(esc.(args)...)))
         else
-            :(jdcall($(base), $(string(method)), $(args)...))
+            :(jdcall($(base), $(string(method)), $(esc(args))...))
         end
     end
     :(try_wrap($(macro_javacall(trans_term, trans_call, expr))))
@@ -192,17 +192,17 @@ macro col(expr)
         if expr.head == :call
             func = expr.args[1]
             args = expr.args[2:end]
-            return :(jdcall(functions, $(string(func)), $(args...)))
+            return :(jdcall(functions, $(string(func)), $(esc.(args)...)))
         end
         expr
     end
-    trans_call(base, method, args) = :(try_call($(base), $(string(method)), $(args...)))
+    trans_call(base, method, args) = :(try_call($(base), $(string(method)), $(esc.(args)...)))
     macro_javacall(trans_term, trans_call, expr)
 end
 
 macro java(expr)
-    trans_term(expr) = expr
-    trans_call(base, method, args) = :(jdcall($(base), $(string(method)), $(args...)))
+    trans_term(expr) = esc(expr)
+    trans_call(base, method, args) = :(jdcall($(base), $(string(method)), $(esc.(args)...)))
     macro_javacall(trans_term, trans_call, expr)
 end
 

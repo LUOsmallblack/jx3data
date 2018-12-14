@@ -38,7 +38,7 @@ new_spcl() = new_spcl(get_current_classloader())
 new_spcl(parent) = @jimport(javacall.SpecialClassLoader)((Array{JURL, 1}, JClassLoader), [], parent)
 
 function JavaCall._metaclass(class::Symbol)
-    @show jclass = JavaCall.javaclassname(class)
+    jclass = JavaCall.javaclassname(@show class)
     jclassptr = if classloader == nothing || class == Symbol("java.lang.Class")
         ccall(JavaCall.jnifunc.FindClass, Ptr{Nothing}, (Ptr{JavaCall.JNIEnv}, Ptr{UInt8}), JavaCall.penv, jclass)
     else
@@ -49,7 +49,7 @@ function JavaCall._metaclass(class::Symbol)
                           "forName", sig)
         @assert jmethodId != C_NULL
         jclassstr = convert(JString, String(class))
-        ccall(JavaCall.jnifunc.CallStaticObjectMethodA, Ptr{Nothing}, (Ptr{JavaCall.JNIEnv}, Ptr{Nothing}, Ptr{Nothing}, Ptr{Nothing}),
+        GC.@preserve jclassstr ccall(JavaCall.jnifunc.CallStaticObjectMethodA, Ptr{Nothing}, (Ptr{JavaCall.JNIEnv}, Ptr{Nothing}, Ptr{Nothing}, Ptr{Nothing}),
                             JavaCall.penv, classClass.ptr, jmethodId, JavaCall.jvalue.([jclassstr.ptr, jboolean(false), classloader.ptr]))
     end
     jclassptr == C_NULL && throw(JavaCall.JavaCallError("Class Not Found $jclass"))
