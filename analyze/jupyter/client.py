@@ -3,11 +3,17 @@ from jupyter_client.threaded import ThreadedKernelClient as KernelClient, Thread
 from jupyter_client.kernelspec import KernelSpec
 from jupyter_client.channels import HBChannel
 
-import os, json, datetime
+import os, sys, json, datetime
+
+def get_output(cmd):
+    from subprocess import Popen, PIPE
+    proc = Popen(cmd, stdin=PIPE, stdout=PIPE, start_new_session=True)
+    (out, _) = proc.communicate()
+    proc.stdin.close()
+    return out
 
 def find_ijulia(julia_path='/usr/bin/julia'):
-    from subprocess import check_output
-    return check_output([julia_path, '-e', 'import IJulia; print(pathof(IJulia))']).decode()
+    return get_output([julia_path, '-e', 'import IJulia; print(pathof(IJulia))']).decode()
 
 def julia_spec(kernel_path=None, *, julia_path='/usr/bin/julia'):
     if kernel_path is None:
@@ -28,12 +34,13 @@ def channel_print(channel, msg):
     except:
         pass
     print(f"{channel}>{msg}")
+    # print(f"{channel}>{msg}", end="\r\n", file=sys.stderr)
 
-def debug_print(*args):
+def debug_print(*args, newline=sys.stdin.isatty() and "\n" or "\r\n"):
     msg = args
     if len(args) == 1:
         msg = args[0]
-    channel_print("debug", msg)
+    print("debug", msg, end=newline, file=sys.stderr)
 
 class StdoutHandler:
     channel_name = "dummy"
@@ -105,14 +112,14 @@ def event_loop(kc):
             line = input()
             [channel, msg] = line.split(">", 1)
             msg = gen_msg(kc, msg)
+            debug_print("msg", msg)
             channels[channel].send(msg)
-            debug_print("msgid", msg["header"]["msg_id"])
+            channel_print("msgid", msg["header"]["msg_id"])
         except KeyboardInterrupt:
             debug_print("exit", "interrupt")
             break
         except Exception as e:
             debug_print("error", e)
-
 
 if __name__ == "__main__":
     import readline
