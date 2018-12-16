@@ -118,6 +118,9 @@ def event_loop(kc):
         except KeyboardInterrupt:
             debug_print("exit", "interrupt")
             break
+        except EOFError:
+            debug_print("exit", "eoferror")
+            break
         except Exception as e:
             debug_print("error", e)
 

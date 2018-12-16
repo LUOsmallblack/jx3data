@@ -25,7 +25,7 @@ defmodule Jx3App.JupyterClient do
   end
 
   @impl true
-  def handle_call({:result, msg_id}, _from, {_, _, responses} = state) do
+  def handle_call({:results, msg_id}, _from, {_, _, responses} = state) do
     result = responses[msg_id]
     {:reply, result, state}
   end
@@ -37,7 +37,7 @@ defmodule Jx3App.JupyterClient do
     case requests[msg_id] do
       %{} = request ->
         case request.from do
-          {pid, _} -> send(pid, {:jupyter_result, msg_id, channel, msg_type, msg})
+          {pid, _} -> send(pid, {self(), {:jupyter_result, msg_id, channel, msg_type, msg}})
           _ -> :error
         end
       _ -> :error
@@ -64,14 +64,14 @@ defmodule Jx3App.JupyterClient do
   end
 
   def do_init(hub) do
-    port = Port.open({:spawn, "python3 jupyter/client.py"}, [:binary, cd: "analyze", line: 4096])
+    port = Port.open({:spawn, "python3 -u jupyter/client.py"}, [:binary, cd: "analyze", line: 4096])
     IO.inspect({self(), port, hub}, label: "spawn_link")
     send(hub, {self(), {:jupyter_connected, port}})
     do_receive_loop(hub, port)
   end
 
   def port_send({pid, port}, channel, msg_type, content) do
-    resp_type = Atom.to_string(msg_type) |> String.replace_trailing("_request", "_reply") |> String.to_atom
+    resp_type = Atom.to_string(msg_type) |> String.replace_trailing("_request", "_reply")
     send(port, {pid, {:command, "#{channel}>#{Jason.encode!([msg_type, content])}\n"}})
     msg_id =
       receive do
@@ -141,22 +141,87 @@ defmodule Jx3App.Sword.Data do
   end
 
   def execute(port, code) do
-    {:ok, request} = GenServer.call(port, {:execute, code})
-    {port, request}
+    {port, GenServer.call(port, {:execute, code})}
   end
 
-  def result({port, request}), do: result(port, request.msg_id)
+  def results({port, request}), do: results(port, request.msg_id)
 
-  def result(port, msg_id) do
+  def results(port, msg_id) do
     GenServer.call(port, {:result, msg_id})
   end
 
-  def init do
+  def do_result(port, msg_id, channel, msg_type, opts \\ []) do
+    cond do
+      Keyword.get(opts, :multiple, false) ->
+        timeout = opts[:timeout] || 0
+        content = receive do
+          {^port, {:jupyter_result, ^msg_id, ^channel, ^msg_type, msg}} ->
+            msg["content"]
+          after timeout -> :timeout
+        end
+        acc = opts[:acc] || []
+        case content do
+          :timeout -> acc
+          _ ->
+            opts = Keyword.put(opts, :acc, [content | acc])
+            do_result(port, msg_id, channel, msg_type, opts)
+        end
+      Keyword.get(opts, :timeout) != nil ->
+        timeout = opts[:timeout]
+        receive do
+          {^port, {:jupyter_result, ^msg_id, ^channel, ^msg_type, msg}} ->
+            msg["content"]
+          after timeout -> :timeout
+        end
+      true ->
+        receive do
+          {^port, {:jupyter_result, ^msg_id, ^channel, ^msg_type, msg}} ->
+            msg["content"]
+        end
+    end
+  end
+
+  def result(port, msg_id, channel, msg_type, opts \\ [])
+  def result(port, msg_id, channel, msg_type, opts) when is_binary(msg_id) do
+    content = do_result(port, msg_id, channel, msg_type, opts)
+    content = case opts[:others] do
+      nil -> content
+      others ->
+        others = others |> Enum.map(fn
+          {channel, msg_type, opts} -> do_result(port, msg_id, channel, msg_type, opts)
+          {channel, msg_type} -> do_result(port, msg_id, channel, msg_type)
+        end)
+        {content, others}
+    end
+    if Keyword.get(opts, :clean, true) do
+      receive do
+        {^port, {:jupyter_result, ^msg_id, _, _, _}} -> :dropped
+      end
+    end
+    content
+  end
+  def result(_port, _msg_id, _channel, _msg_type, _others), do: :error
+
+  def result({port, request}, opts \\ []) do
+    result(port, request.msg_id, request.channel, request.resp_type, opts)
+  end
+
+  def execute_result({port, request}, opts \\ []) do
+    others = opts[:others] || []
+    opts = opts |> Keyword.put(:others, [{:iopub, "execute_result", multiple: true} | others])
+    {content, [output|others]} = result({port, request}, opts)
+    if others == [] do
+      {content, output}
+    else
+      {content, output, others}
+    end |> IO.inspect
+  end
+
+  def init(port) do
     spark_master = Application.get_env(:jx3app, __MODULE__)[:spark_master] || "localhost"
-    port = port_init()
-    port |> execute(~s|import Pkg; Pkg.activate(".")|) |> result()
-    "" = port |> execute("using Sword") |> result()
-    "" = port |> execute("Sword.init()") |> result()
+    port |> execute(~s|import Pkg; Pkg.activate(".")|) |> execute_result()
+    {%{"status" => "ok"}, []} = port |> execute("using Sword") |> execute_result()
+    {%{"status" => "ok"}, []} = port |> execute("Sword.init()") |> execute_result()
     # port |> connect_spark(:spark, spark_master) |> result() |> IO.inspect(label: "connect_spark")
     port
   end
