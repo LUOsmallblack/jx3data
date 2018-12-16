@@ -5,6 +5,8 @@ from jupyter_client.channels import HBChannel
 
 import os, sys, json, datetime
 
+leader_char = "|"
+
 def get_output(cmd):
     from subprocess import Popen, PIPE
     proc = Popen(cmd, stdin=PIPE, stdout=PIPE, start_new_session=True)
@@ -33,7 +35,7 @@ def channel_print(channel, msg):
         msg = json.dumps(msg, default=json_default)
     except:
         pass
-    print(f"{channel}>{msg}")
+    print(f"{leader_char}{channel}>{msg}")
     # print(f"{channel}>{msg}", end="\r\n", file=sys.stderr)
 
 def debug_print(*args, newline=sys.stdin.isatty() and "\n" or "\r\n"):
@@ -113,6 +115,7 @@ def event_loop(kc):
             if not line or not line.strip():
                 continue
             [channel, msg] = line.split(">", 1)
+            channel = channel.lstrip(leader_char)
             msg = gen_msg(kc, msg)
             debug_print("msg", msg)
             channels[channel].send(msg)

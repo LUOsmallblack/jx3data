@@ -72,7 +72,7 @@ defmodule Jx3App.JupyterClient do
 
   def port_send({pid, port}, channel, msg_type, content) do
     resp_type = Atom.to_string(msg_type) |> String.replace_trailing("_request", "_reply")
-    send(port, {pid, {:command, "#{channel}>#{Jason.encode!([msg_type, content])}\n"}})
+    send(port, {pid, {:command, "|#{channel}>#{Jason.encode!([msg_type, content])}\n"}})
     msg_id =
       receive do
         {^pid, {:msgid, msgid}} -> msgid
@@ -109,7 +109,7 @@ defmodule Jx3App.JupyterClient do
 
   def parse_recv(line) do
     case String.split(line, ">", parts: 2) do
-      [channel, json] ->
+      ["|" <> channel, json] ->
         case Jason.decode(json) do
           {:ok, body} -> {String.to_atom(channel), body}
           _ -> :error
