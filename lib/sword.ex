@@ -59,7 +59,7 @@ defmodule Jx3App.JupyterClient do
       {:msgid, msgid} -> send(hub, {self(), {:msgid, msgid}} |> IO.inspect(label: "send_msgid"))
       {channel, %{} = body} -> GenServer.cast(hub, {:response, channel, body})
       _ -> :error
-    end |> IO.inspect(label: "Receive Loop")
+    end
     do_receive_loop(hub, port)
   end
 
@@ -81,14 +81,15 @@ defmodule Jx3App.JupyterClient do
   end
 
   def port_receive(port, opts \\ []) do
-    verbose = opts[:verbose] || true
+    verbose = opts[:verbose] || false
     receive do
       {^port, {:data, {:eol, << "msgid>", msgid::binary >>}}} ->
         msgid = case Jason.decode(msgid) do
           {:ok, m} -> m
           _ -> msgid
         end
-        {:msgid, msgid} |> IO.inspect(label: "recv")
+        if verbose do IO.inspect(msgid, label: "msg_id") end
+        {:msgid, msgid}
       {^port, {:data, x}} ->
         if verbose do IO.inspect(x, label: "recv") end
         case x do
@@ -132,8 +133,6 @@ end
 
 defmodule Jx3App.Sword.Data do
   alias Jx3App.Sword.SwordRepo, as: Repo
-
-  use JuliaPort.GenFunction, [connect_spark: 1, load_db: 3]
 
   def port_init do
     {:ok, port} = GenServer.start_link(Jx3App.JupyterClient, [])

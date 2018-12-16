@@ -110,6 +110,8 @@ def event_loop(kc):
     while True:
         try:
             line = input()
+            if not line or not line.strip():
+                continue
             [channel, msg] = line.split(">", 1)
             msg = gen_msg(kc, msg)
             debug_print("msg", msg)
