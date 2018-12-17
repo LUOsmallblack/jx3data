@@ -38,6 +38,9 @@ function jtypeforclass(cls::JClass)
 end
 
 function _narrow(obj::JavaObject)
+    if obj.ptr == C_NULL
+        return nothing
+    end
     c = jcall(obj,"getClass", JClass, ())
     return convert(jtypeforclass(c), obj)
 end

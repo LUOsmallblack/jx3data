@@ -27,24 +27,32 @@ Sword.show_tags(my_items)
 init_const(my_spark, my_items)
 
 #%%
-using Plots, StatPlots
-# import PyCall
-# PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.family"] = ["sans-serif"]
-# PyCall.PyDict(PyCall.pyimport("matplotlib")["rcParams"])["font.sans-serif"] = ["Source Han Serif CN"]
-pyplot(xtickfont=font(8, "Source Han Serif CN"))
-# RecipesBase.debug()
-my_grade_count = grade_count(my_matches)
-StatPlots.@df my_grade_count bar(:grade, :count)
+import Base.convert
+JProperties = JavaCall.@jimport(java.util.Properties)
+function convert(::Type{JProperties}, src::Dict{String, String})
+    prop = JProperties(())
+    for (k, v) in src
+        @java prop.setProperty(k, v)
+    end
+    prop
+end
+function save_db(sdf, tag; db_url="postgresql://localhost:5733/jx3spark", table="v_documents", mode="append")
+    @spark sdf.withColumn("tag", @col lit(convert(JavaCall.JString, tag))).write().
+        mode(mode).jdbc("jdbc:$(db_url)", table, Dict(
+            "driver" => "org.postgresql.Driver",
+            "stringtype" => "unspecified"))
+    JavaCall.geterror()
+end
 
 #%%
-my_kungfus_13 = split_team(match_grade(my_matches, 13))
-my_kungfus_13_count = match_count(my_kungfus_13)
+my_grade_count = grade_count(my_matches)
+# my_grade_count |> spark2df
+my_grade_count |> sparkagg |> x->save_db(x, "grade_count"; mode="append")
 
-sort(my_kungfus_13_count, :rate)
-# @df my_kungfus_13_count bar(:short, :count; orientation=:horizontal)
-@df my_kungfus_13_count scatter(:won, :count; scale=:log10)
-@show filter(r->10021 ∈ r[:kungfus], sort(my_kungfus_13_count, :rate; rev=true))[[:short, :won, :count, :rate]]
-@df sort(my_kungfus_13_count, :rate) scatter(:count, :rate; xscale=:log10)
+#%%
+for i in 1:13
+    split_team(match_grade(my_matches, i)) |> match_count |>
+        sparkagg |> x->save_db(x, "kungfus_$i"; mode="append")
 
 #%%
 close(my_spark)

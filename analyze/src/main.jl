@@ -1,6 +1,6 @@
 using Spark
 
-export connect_spark, load_db, init_kungfu_items, split_team, grade_count, match_grade, match_count, kungfu_weight
+export connect_spark, load_db, init_kungfu_items, spark2df, sparkagg, split_team, grade_count, match_grade, match_count, kungfu_weight
 
 try_wrap(x::Spark.JDataset) = Dataset(x)
 
@@ -19,18 +19,20 @@ function init()
     @java spcl.add("jars/postgresql-42.2.5.jar")
 end
 
-connect_spark(master::AbstractString) = connect_spark(
+connect_spark(master::AbstractString; log_level="WARN") = connect_spark(
     master,
     Dict(
         "spark.executor.memory"=>"12g",
         # "spark.driver.extraJavaOptions"=>"-Xss16m",
-        "spark.sql.session.timeZone"=>"UTC",))
-function connect_spark(master, conf)
+        "spark.sql.session.timeZone"=>"UTC",);
+    log_level=log_level)
+function connect_spark(master, conf; log_level="WARN")
     spark = SparkSession(master=master; config=conf)
     # spark = SparkSession(master="local")
     sc = Spark.context(spark)
-    # @show Spark.set_log_level(sc, "WARN")
-    @java sc.jsc.setLogLevel("WARN")
+    if log_level != nothing
+        @java sc.jsc.setLogLevel(log_level)
+    end
     # Spark.checkpoint_dir!(sc, "/tmp/spark")
     Spark.add_jar(sc, "jars/postgresql-42.2.5.jar")
     return spark
@@ -51,6 +53,14 @@ function load_dbs(spark, url)
     global match_roles = load_db(spark, url, "match_3c.match_roles")
 end
 
+function spark2df(sdf; limit=200)
+    parse_json(@spark sdf.toJSON().take(jint(limit)))
+end
+
+function sparkagg(sdf)
+    @spark sdf.toJSON().groupBy([@col lit(int_obj(1))]).agg([@col collect_list("value").alias("content")]...).select(["content"]...)
+end
+
 #%%
 # jdcall_cache_clear!()
 show_tags(items) = @spark items.select(["tag"]...).distinct().show()
@@ -68,7 +78,7 @@ function init_kungfu_items(spark, items)
 end
 
 #%%
-grade_count(matches) = @spark(matches.groupBy(["grade"]...).count().sort(("count",)...).toJSON().take(jint(200))) |> parse_json
+grade_count(matches) = @spark(matches.groupBy(["grade"]...).count().sort(("count",)...))
 
 #%%
 function split_team(matches)
@@ -87,9 +97,12 @@ function split_team(matches)
 end
 match_grade(matches, x) = @spark(matches.filter(@col grade.equalTo(int_obj(x))))
 function match_count(match_teams)
-    match_count = parse_json(@spark match_teams.groupBy(["kungfus"]...).
+    @spark match_teams.groupBy(["kungfus"]...).
         agg([@col(lit(int_obj(1)).count().alias("count")), @col(won.when(int_obj(1)).count().alias("won"))]...).
-        sort([@col won.desc()]).toJSON().take(jint(200)))
+        sort([@col won.desc()])
+end
+function match_count_take(df)
+    match_count = parse_json(@spark df.toJSON().take(jint(200)))
     match_count[:short] = show_kungfus.(match_count[:kungfus])
     match_count[:rate] = match_count[:won]./match_count[:count]
     match_count
