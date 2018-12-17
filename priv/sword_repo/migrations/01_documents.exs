@@ -4,7 +4,7 @@ defmodule Jx3App.Sword.SwordRepo.Migrations.CreateDocuments do
   def change do
     create table(:documents) do
       add :tag, :string
-      add :content, :map
+      add :content, {:array, :map}
       add :status, :integer
       timestamps(type: :naive_datetime_usec)
     end
