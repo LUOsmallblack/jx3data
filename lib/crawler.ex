@@ -272,8 +272,9 @@ defmodule Jx3App.Crawler do
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_at: last} = perf, opts \\ []) do
+  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_count: fetched_count, fetched_at: last} = perf, opts \\ []) do
     cond do
+      opts[:mode] == :setup and fetched_count == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
       opts[:mode] == :all -> do_fetch(role, match_type, %{ranking: ranking}, opts)
       ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :limit, 100))
       last == nil -> do_fetch(role, match_type, %{ranking: ranking}, opts)

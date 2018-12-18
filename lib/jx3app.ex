@@ -21,9 +21,9 @@ defmodule Jx3App.Application do
     args
   end
 
-  @default_config %{roles: [], crawler: [name: Jx3App.Crawler, mode: :all, match_types: ["3c"]]}
+  @default_config %{roles: [], crawler: [name: Jx3App.Crawler, mode: :recent, match_types: ["3c"]]}
   @allowed_roles [:all, :server, :crawler, :cache, :none]
-  @allowed_crawler_mode [:all, :setup, :inc]
+  @allowed_crawler_mode [:all, :setup, :recent]
   def parse_args(args) do
     config = pre_parse_args(args, @default_config)
     case config do
@@ -57,7 +57,7 @@ defmodule Jx3App.Application do
     Logger.info("""
       Options:
         --role role1,role2,...: role in #{inspect(@allowed_roles)}, default: :none
-        --crawler-mode mode: mode in #{inspect(@allowed_crawler_mode)}, default: :inc
+        --crawler-mode mode: mode in #{inspect(@allowed_crawler_mode)}, default: :recent
         --crawler-type type1,type2,...: type in [all, {2,3,5}{c,d,m}], default: 3c
     """)
     nil
