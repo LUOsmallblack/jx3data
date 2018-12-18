@@ -2,8 +2,29 @@ defmodule Jx3App.Crawler do
   alias Jx3App.{Model, API, Utils}
   require Logger
 
-  def start_link do
-    {:ok, run()}
+  defmodule Workers do
+    use Supervisor
+
+    def start_link(opts) do
+      Supervisor.start_link(__MODULE__, opts, name: __MODULE__)
+    end
+
+    def init(opts) do
+      children = Enum.map(opts[:match_types], fn t ->
+        opts = Keyword.put(opts, :match_type, t)
+        worker(Jx3App.Crawler, [opts], restart: :transient)
+      end)
+      supervise(children, strategy: :one_for_one)
+    end
+  end
+
+  def start_link(opts) do
+    Logger.info("crawler " <> inspect(opts))
+    cond do
+      opts[:match_type] -> {:ok, run(opts)}
+      opts[:match_types] -> Workers.start_link(opts)
+      true -> {:ok, run(opts)}
+    end
   end
 
   def save_performance(_, nil), do: []
@@ -263,13 +284,24 @@ defmodule Jx3App.Crawler do
     end
   end
 
-  def run(opts \\ [mode: :all]) do
-    name = opts[:name] || :crawler_3c
-    roles = Model.Query.get_roles(match_type: opts[:match_type], limit: :all)
+  def run(opts \\ [mode: :inc]) do
+    {match_types, opts} = Keyword.pop(opts, :match_types)
+    {match_type, opts} = Keyword.pop(opts, :match_type)
+    case {match_type, match_types} do
+      {nil, nil} -> do_run("3c", opts)
+      {nil, _} -> Enum.map(match_types, fn i -> do_run(i, opts) end)
+      _ -> do_run(match_type, opts)
+    end
+  end
+
+  def do_run(match_type, opts) do
+    name = opts[:name] || "crawler_#{match_type}"
+    roles = Model.Query.get_roles(match_type: match_type, limit: :all)
     Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, p, opts) end, nil)
   end
 
   def stop(opts \\ []) do
-    Jx3App.Task.kill(opts[:name] || :crawler_3c)
+    match_type = opts[:match_type] || ""
+    Jx3App.Task.kill(opts[:name] || "crawler_#{match_type}")
   end
 end
