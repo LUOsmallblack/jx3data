@@ -12,10 +12,12 @@ using Revise
 using Sword
 import Spark, JavaCall
 
+@info "init sword"
 Sword.init()
 my_spark = connect_spark("spark://clouds-sp:7077")
 
 #%%
+@info "load dbs"
 db_url = "postgresql://localhost:5733/j3"
 my_items = load_db(my_spark, db_url, "items")
 my_matches = load_db(my_spark, db_url, "match_3c.matches")
@@ -45,14 +47,17 @@ function save_db(sdf, tag; db_url="postgresql://localhost:5733/jx3spark", table=
 end
 
 #%%
+@info "grade count"
 my_grade_count = grade_count(my_matches)
 # my_grade_count |> spark2df
 my_grade_count |> sparkagg |> x->save_db(x, "grade_count"; mode="append")
 
 #%%
 for i in 1:13
+    @info "match count $i"
     split_team(match_grade(my_matches, i)) |> match_count |>
         sparkagg |> x->save_db(x, "kungfus_$i"; mode="append")
+end
 
 #%%
 close(my_spark)
