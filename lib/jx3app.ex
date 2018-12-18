@@ -2,10 +2,43 @@ defmodule Jx3App.Application do
   use Application
   require Logger
 
-  def start(_type, args) do
-    import Supervisor.Spec, warn: false
+  def get_args do
+    # work around for https://github.com/bitwalker/distillery/issues/611
+    args = case System.argv do
+      [] -> get_args_from_init()
+      args -> args
+    end
+    args = case args do
+      [] -> nil
+      [arg, ""] -> String.split(arg) |> Enum.drop(1)
+      args -> args
+    end
+    case args do
+      nil -> nil
+      ["--" | args] -> args |> Enum.map(&String.to_atom/1)
+      args -> args |> Enum.map(&String.to_atom/1)
+    end
+  end
 
+  def get_args_from_init do
+    args = :init.get_plain_arguments |> Enum.map(&List.to_string/1)
+    {_, args} = Elixir.Kernel.CLI.parse_argv(args)
+    args
+  end
+
+  def start(_type, args) do
+    args = get_args() || args
     Logger.info("start server with " <> inspect(args))
+    case Enum.filter(args, &(&1 not in [:all, :server, :crawler, :cache, :none])) do
+      [] -> do_start(args)
+      unknown_args ->
+        Logger.error("unknown args " <> inspect(unknown_args))
+        {:error, "bad args"}
+    end
+  end
+
+  def do_start(args) do
+    import Supervisor.Spec, warn: false
 
     api_args = Application.get_env(:jx3app, Jx3App.API)
     redix_args = Application.get_env(:jx3app, Jx3App.Cache)[:redis] || []
