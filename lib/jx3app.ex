@@ -21,7 +21,7 @@ defmodule Jx3App.Application do
     args
   end
 
-  @default_config %{roles: [], crawler: [name: Jx3App.Crawler, mode: :recent, match_types: ["3c"]]}
+  @default_config %{roles: [], crawler: [mode: :recent, match_types: ["3c"]]}
   @allowed_roles [:all, :server, :crawler, :cache, :none]
   @allowed_crawler_mode [:all, :setup, :recent]
   def parse_args(args) do
@@ -32,7 +32,7 @@ defmodule Jx3App.Application do
     end
   end
 
-  def pre_parse_args(["--" | t], config), do: parse_args(t, config)
+  def pre_parse_args(["--" | t], config), do: pre_parse_args(t, config)
   def pre_parse_args(t, config), do: parse_args(t, config)
   def parse_args(["--role", roles | t], config) do
     roles = String.split(roles, ",") |> Enum.map(&String.to_atom/1)

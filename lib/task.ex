@@ -1,12 +1,20 @@
 defmodule Jx3App.Task do
   @name __MODULE__
 
+  require Logger
+
   def start_link() do
     Agent.start_link(fn -> load() end, name: @name)
   end
 
   def load do
     %{}
+  end
+
+  def keys do
+    Agent.get(@name, fn tasks ->
+      Map.keys(tasks)
+    end)
   end
 
   def get(name) do
@@ -55,7 +63,7 @@ defmodule Jx3App.Task do
       update_status(name, :started)
       list
       |> Stream.with_index
-      |> Enum.map(fn {x, i} ->
+      |> Enum.each(fn {x, i} ->
         try do
           case get(name) do
             {:stopping, _} -> :skipped
@@ -63,7 +71,8 @@ defmodule Jx3App.Task do
           end
           update_status(name, {:partial, i, count})
         rescue
-          e -> {:error, e}
+          e ->
+            Logger.error("Jx3App.Task (#{name}): " <> Exception.format(:error, e, __STACKTRACE__))
         catch
           :exit, e when e != :stop -> {:error, e}
         end

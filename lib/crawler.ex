@@ -274,7 +274,10 @@ defmodule Jx3App.Crawler do
 
   def fetch(role, %{match_type: match_type, ranking: ranking, fetched_count: fetched_count, fetched_at: last} = perf, opts \\ []) do
     cond do
-      opts[:mode] == :setup and fetched_count == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
+      opts[:mode] == :setup ->
+        if fetched_count == nil do
+          do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
+        end
       opts[:mode] == :all -> do_fetch(role, match_type, %{ranking: ranking}, opts)
       ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :limit, 100))
       last == nil -> do_fetch(role, match_type, %{ranking: ranking}, opts)
@@ -285,7 +288,7 @@ defmodule Jx3App.Crawler do
     end
   end
 
-  def run(opts \\ [mode: :inc]) do
+  def run(opts \\ [mode: :recent]) do
     {match_types, opts} = Keyword.pop(opts, :match_types)
     {match_type, opts} = Keyword.pop(opts, :match_type)
     case {match_type, match_types} do
