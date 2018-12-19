@@ -17,13 +17,24 @@ defmodule Jx3App.Task do
     end)
   end
 
-  def get(name) do
+  def get(name, opts \\ []) do
+    with_list = opts[:list] || false
     Agent.get(@name, fn tasks ->
       case Map.get(tasks, name, nil) do
-        %{status: status} = t -> {status, t}
+        %{status: status} = t ->
+          t = if with_list do
+            t
+          else
+            %{t | list: nil}
+          end
+          {status, t}
         nil -> {:not_exist, nil}
       end
     end)
+  end
+
+  def status(name) do
+    get(name, list: false) |> elem(0)
   end
 
   def put(name, t) do
@@ -65,8 +76,8 @@ defmodule Jx3App.Task do
       |> Stream.with_index
       |> Enum.each(fn {x, i} ->
         try do
-          case get(name) do
-            {:stopping, _} -> :skipped
+          case status(name) do
+            :stopping -> :skipped
             _ -> func.(x)
           end
           update_status(name, {:partial, i, count})
@@ -98,7 +109,7 @@ defmodule Jx3App.Task do
   end
 
   def resume(name) do
-    case get(name) do
+    case get(name, list: true) do
       {:started, %{} = t} -> do_resume(name, 0, t)
       {{:partial, i, _}, %{} = t} -> do_resume(name, i, t)
       _ -> :error

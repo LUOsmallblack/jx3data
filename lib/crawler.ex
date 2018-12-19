@@ -272,15 +272,16 @@ defmodule Jx3App.Crawler do
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_count: fetched_count, fetched_at: last} = perf, opts \\ []) do
+  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_count: fetched_count, fetched_at: last}, opts \\ []) do
+    perf = %{ranking: ranking}
     cond do
       opts[:mode] == :setup ->
         if fetched_count == nil do
           do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
         end
-      opts[:mode] == :all -> do_fetch(role, match_type, %{ranking: ranking}, opts)
-      ranking >= -3 and last == nil -> do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :limit, 100))
-      last == nil -> do_fetch(role, match_type, %{ranking: ranking}, opts)
+      opts[:mode] == :all -> do_fetch(role, match_type, perf, opts)
+      ranking >= -3 and last == nil -> do_fetch(role, match_type, perf, Keyword.put(opts, :limit, 100))
+      last == nil -> do_fetch(role, match_type, perf, opts)
       ranking in [-1, -2, -3] and not Utils.time_in?(last, 6, :day) -> do_fetch(role, match_type, perf, opts)
       ranking > 0 and not Utils.time_in?(last, 18, :hour) -> do_fetch(role, match_type, perf, opts)
       not Utils.time_in?(last, 7, :day) -> do_fetch(role, match_type, perf, opts)

@@ -43,7 +43,7 @@ mix test
 # release
 MIX_ENV=prod mix release
 # run
-_build/prod/rel/jx3app/bin/jx3app start
+_build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all
 ```
 
 ## Useful commands
@@ -63,6 +63,7 @@ _build/prod/rel/jx3app/bin/jx3app start
     # inside jx3app, create role with name as the user tp run apache-spark
     jx3app# CREATE ROLE "apache-spark" LOGIN;
     ```
+
 2. redis
     ```shell
     redis-server cache/redis.conf
@@ -71,7 +72,13 @@ _build/prod/rel/jx3app/bin/jx3app start
     redis-cli -p 5734 shutdown
     ```
 
-3. orientdb
+3. apache-spark
+    ```shell
+    systemctl start apache-spark-master
+    systemctl start apache-spark-slave@localhost:7077
+    ```
+
+4. orientdb
     ```shell
     docker pull orientdb
     model/start.sh create --name jx3app-model -p 5735:2424 -p 5736:2480
