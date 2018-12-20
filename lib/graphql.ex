@@ -49,9 +49,17 @@ defmodule Jx3App.GraphQL do
       args = args |> Utils.put_default(:limit, 20) |> Utils.put_default(:offset, 0)
                   |> Utils.put_default(:prefix, Model.Match.prefix(args[:match_type] || "3c"))
       matches = from(m in Model.Match,
-        order_by: [fragment("? DESC NULLS LAST", m.start_time)])
+        order_by: [fragment("? DESC NULLS LAST", m.match_id)])
         |> Model.Dynamic.query(args)
-        |> Model.Repo.all
+      matches = case args[:match_id] do
+        nil -> matches
+        match_id ->
+          matches
+          |> Ecto.Query.join(:inner, [m], r in Model.MatchRole, on: m.match_id == r.match_id)
+          |> Ecto.Query.where([m, r], r.role_id == ^match_id)
+          |> Ecto.Query.select([m, r], m)
+      end
+      matches = matches |> Model.Repo.all
       {:ok, matches}
     end
   end
@@ -104,6 +112,7 @@ defmodule Jx3App.GraphQL do
     import Absinthe.Resolution.Helpers, only: [dataloader: 1, dataloader: 3]
 
     object :match do
+      field :match_id, :integer
       field :start_time, :integer
       field :duration, :integer
       field :pvp_type, :integer
@@ -177,6 +186,7 @@ defmodule Jx3App.GraphQL do
         arg :limit, :integer, default_value: 20
         arg :offset, :integer, default_value: 0
         arg :match_type, :string, default_value: "3c"
+        arg :role_id, :string, default_value: nil
         arg :where, :string
         complexity &Resolvers.complexity/2
         resolve &Resolvers.matches/3
