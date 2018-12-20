@@ -5,7 +5,7 @@ build gen/sources.txt: find_blobs | dummy
   pattern = *.php
 build gen/headers.txt: find_blobs | dummy
   pattern = common/*.php
-build gen/inc.ninja: generate_ninja_inc || gen/sources.txt gen/headers.txt
+build gen/inc.ninja: generate_ninja_inc | gen/sources.txt gen/headers.txt
   source = gen/sources.txt
   header = gen/headers.txt
 build gen/build.ninja: generate_ninja rules.ninja | gen/inc.ninja
