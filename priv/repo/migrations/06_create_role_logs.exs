@@ -27,7 +27,7 @@ defmodule Jx3App.Model.Repo.Migrations.CreateRoleLogs do
       BEGIN
         IF ((TG_OP = 'INSERT' or NEW.passport_id <> OLD.passport_id) AND
             NEW.global_id IS NOT NULL AND NEW.passport_id IS NOT NULL) THEN
-          INSERT INTO role_passport_logs (global_id, passport_id, inserted_at)
+          INSERT INTO public.role_passport_logs (global_id, passport_id, inserted_at)
           VALUES (NEW.global_id, NEW.passport_id, now());
         END IF;
         RETURN NULL;

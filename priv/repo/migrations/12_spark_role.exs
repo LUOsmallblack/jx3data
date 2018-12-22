@@ -8,26 +8,41 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
     nils = Stream.cycle([nil])
     Stream.zip(Stream.concat(up, nils), Stream.concat(down, nils))
     |> Enum.take(len)
-    |> Enum.each(fn {u, d} -> execute(String.strip(u||""), String.strip(d||"")) end)
+    |> Enum.each(fn {u, d} -> execute(String.trim(u||""), String.trim(d||"")) end)
+  end
+
+  def dbname do
+    repo().config[:database] || "jx3app"
   end
 
   def change do
-    role = ~s[jx3app_reader]
+    role = ~s[#{dbname()}_reader]
     spark_role = ~s["apache-spark"]
     match_schemas = ~w[match_2c match_3c match_5c match_2d match_3d match_5d match_2m match_3m match_5m]a |> Enum.join(", ")
+    create_role(role)
     # https://stackoverflow.com/questions/19045149/error-permission-denied-for-schema-user1-gmail-com-at-character-46
     execute_all """
-      CREATE ROLE #{role};
       GRANT SELECT ON ALL TABLES IN SCHEMA public, #{match_schemas} TO #{role};
       ALTER DEFAULT PRIVILEGES IN SCHEMA #{match_schemas} GRANT SELECT ON TABLES TO #{role};
       GRANT USAGE ON SCHEMA public, #{match_schemas} TO #{role};
     """, """
-      DROP ROLE #{role};
       REVOKE SELECT ON ALL TABLES IN SCHEMA public, #{match_schemas} FROM #{role};
       ALTER DEFAULT PRIVILEGES IN SCHEMA #{match_schemas} REVOKE SELECT ON TABLES FROM #{role};
       REVOKE USAGE ON SCHEMA public, #{match_schemas} FROM #{role};
     """
     execute ~s|GRANT #{role} TO #{spark_role}|,
             ~s|REVOKE #{role} FROM #{spark_role}|
+  end
+
+  def create_role(name) do
+    execute """
+    DO language plpgsql $$
+    BEGIN
+      CREATE ROLE #{name};
+    EXCEPTION WHEN others THEN
+      RAISE NOTICE '#{name} role exists, not re-creating';
+    END
+    $$
+    """, "DROP ROLE #{name}"
   end
 end

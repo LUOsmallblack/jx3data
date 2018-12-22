@@ -55,8 +55,8 @@ _build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all
     pg_ctl -D data -o "-p5733" -l postgres.log start
     # user mix ecto.create/ecto.drop instead
     # createdb/dropdb -p5733 jx3app
-    pg_dump -Fc -p5733 jx3app > dump.sql
-    pg_restore -a -p5733 -djx3app dump.sql --disable-triggers
+    pg_dump -a -Fc -t roles -t persons -hlocalhost -p5733 jx3app > roles.sql
+    pg_restore -a -hlocalhost -p5733 -djx3app roles.sql # --disable-triggers
     # use "-h/tmp/postgresql" to specific pid folder, or use "-hlocalhost" when connect
     psql -p5733 jx3app # -s (step)
 
