@@ -11,15 +11,12 @@ defmodule Jx3App.Server.Website do
   plug :dispatch, builder_opts()
 
   get "/" do
-    Utils.redirect(conn, to: "/index.html")
-  end
-
-  get "/index.html" do
-    send_resp(conn, 200, "welcome to jx3app!")
+    Utils.redirect(conn, to: "/index")
   end
 
   match _ do
-    not_found(conn, [])
+    {:ok, content} = File.read("assets/static/index.php.html")
+    send_resp(conn, 200, content)
   end
 
   def not_found(conn, _opts \\ []) do

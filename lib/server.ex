@@ -11,6 +11,7 @@ defmodule Jx3App.Server do
     plug :not_found
   end
 
+  # plug Plug.Logger, log: :debug
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json, Absinthe.Plug.Parser],
     pass: ["*/*"],
@@ -21,7 +22,7 @@ defmodule Jx3App.Server do
 
   forward "/api", to: Rest, init_opts: [prefix: "/api"]
 
-  forward "/static", to: Static, init_opts: [at: "/", from: "./assets/build"]
+  forward "/static", to: Static, init_opts: [at: "/", from: "./assets/static"]
 
   forward "/graphiql", to: Absinthe.Plug.GraphiQL,
     init_opts: [schema: GraphQL.Schema, json_codec: Jason]

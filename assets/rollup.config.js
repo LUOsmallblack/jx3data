@@ -8,7 +8,7 @@ import copy from 'rollup-plugin-copy-glob';
 const watch = process.env.ROLLUP_WATCH;
 
 export default {
-  input: 'src/Demo.bs.js',
+  input: 'src/App.bs.js',
   output: {
     name: 'viewer',
     file: 'static/bundle.js',
