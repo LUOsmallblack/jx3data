@@ -22,3 +22,20 @@ let rec zip(list1, list2) =
   | (_, []) => []
   | ([x, ...xs], [y, ...ys]) => [(x,y), ...zip(xs, ys)]
   };
+
+module Link = {
+  let component = ReasonReact.statelessComponent("Link");
+  let handleClick = (href, event) =>
+    if (! ReactEvent.Mouse.defaultPrevented(event)) {
+      ReactEvent.Mouse.preventDefault(event);
+      ReasonReact.Router.push(href)
+    };
+
+  let make = (~href, children) => {
+    ...component,
+    render: (_self) =>
+      <a href onClick=handleClick(href)>
+        {ReasonReact.array(children)}
+      </a>
+  }
+}

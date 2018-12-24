@@ -17,23 +17,6 @@ let route = url =>
   | _ => NotFound
   };
 
-module Link = {
-  let component = ReasonReact.statelessComponent("Link");
-  let handleClick = (href, event) =>
-    if (! ReactEvent.Mouse.defaultPrevented(event)) {
-      ReactEvent.Mouse.preventDefault(event);
-      ReasonReact.Router.push(href)
-    };
-
-  let make = (~href, children) => {
-    ...component,
-    render: (_self) =>
-      <a href onClick=handleClick(href)>
-        {ReasonReact.array(children)}
-      </a>
-  }
-}
-
 module Component = {
   let getSummary = (_, self) =>
     Api.cacheData(Api.summary, summary => self.ReasonReact.send(Summary(summary)))

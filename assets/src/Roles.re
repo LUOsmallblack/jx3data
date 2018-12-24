@@ -16,8 +16,7 @@ module Role = {
     render: _ => {
       let (role_id, name, force, score, win_rate) = (roleIdGet(role), nameGet(role), forceGet(role), scoreGet(role), winRateGet(role));
       <tr>
-        <td className="jx3app_role_id">{ReasonReact.string(role_id)}</td>
-        <td className="jx3app_role_name">{ReasonReact.string(name)}</td>
+        <td><Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link></td>
         <td className="jx3app_force">{ReasonReact.string(force)}</td>
         <td>{ReasonReact.string(string_of_int(score))}</td>
         <td>{ReasonReact.string(string_of_float(win_rate))}</td>
@@ -35,7 +34,6 @@ let make = (~roles, _children) => {
     <table className="table table-sm table-hover">
       <thead>
         <tr>
-          {th("Role Id")}
           {th("Name")}
           {th("Force")}
           {th("Score")}
