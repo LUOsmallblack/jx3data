@@ -75,11 +75,12 @@ let make = (_children) => {
   },
   reducer: (action, state) =>
     switch (action) {
-    | Route(route) =>
+    | Route(route) when route != state.page =>
         ReasonReact.UpdateWithSideEffects(
           {...state, page: route},
           self => Component.fetchRoute(route, self)
         )
+    | Route(_) => ReasonReact.NoUpdate
     | Summary(summary) => ReasonReact.Update({...state, summary: summary})
     | Top200(roles) => ReasonReact.Update({...state, top200: roles})
     | Matches(role_id, matches) => ReasonReact.Update({...state, matches: Utils.StringMap.add(role_id, matches, state.matches)})
@@ -87,6 +88,7 @@ let make = (_children) => {
   didMount: self => {
     let watcherID = ReasonReact.Router.watchUrl(url => self.send(Route(route(url))));
     self.onUnmount(() => ReasonReact.Router.unwatchUrl(watcherID));
+    self.handle(Component.getSummary, ());
     Component.fetchRoute(self.state.page, self)
   },
   render: ({state}) => {
