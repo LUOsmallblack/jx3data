@@ -15,6 +15,41 @@ let route = url =>
   | _ => NotFound
   };
 
+module Link = {
+  let component = ReasonReact.statelessComponent("Link");
+  let handleClick = (href, event) =>
+    if (! ReactEvent.Mouse.defaultPrevented(event)) {
+      ReactEvent.Mouse.preventDefault(event);
+      ReasonReact.Router.push(href)
+    };
+
+  let make = (~href, children) => {
+    ...component,
+    render: (_self) =>
+      <a href onClick=handleClick(href)>
+        {ReasonReact.array(children)}
+      </a>
+  }
+}
+
+module Component = {
+  let index = (summary) =>
+    <div>
+      <div>summary</div>
+      <div>
+        <Link href="/role/123">{ReasonReact.string("role: 123")}</Link>
+      </div>
+    </div>;
+
+  let role = (summary, role_id) =>
+    <div>
+      <div>summary</div>
+      <div>
+        {ReasonReact.string("role: " ++ role_id)}
+      </div>
+    </div>;
+};
+
 let component = ReasonReact.reducerComponent("RoleKungfu");
 let make = (_children) => {
   ...component,
@@ -35,8 +70,8 @@ let make = (_children) => {
     }
     switch (state.page) {
     | NotFound => ReasonReact.string("not found")
-    | Index => summary
-    | Role(role_id) => ReasonReact.string("role " ++ role_id)
+    | Index => Component.index(summary)
+    | Role(role_id) => Component.role(summary, role_id)
     }
   }
 };
