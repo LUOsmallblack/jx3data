@@ -15,6 +15,7 @@ type cache('a) = {
 
 external asSummary : Js.Json.t => Summary.summary = "%identity";
 external asRoles : Js.Json.t => Roles.roles = "%identity";
+external asMatches : Js.Json.t => Matches.matches = "%identity";
 
 let summary = () =>
   Js.Promise.(
@@ -26,6 +27,14 @@ let top200 = () =>
   Js.Promise.(
     Axios.get("/api/roles")
     |> then_(resp => resolve(asRoles(resp##data)))
+  );
+
+let match_query = role_id => "{" ++ {j|matches(matchType:"3c",roleId:"$role_id")|j} ++
+  "{matchId,duration,grade,map,pvpType,startTime,team1Score,team2Score,team1Kungfu,team2Kungfu,roleIds,winner}" ++ "}";
+let matches = (role_id, ()) =>
+  Js.Promise.(
+    Axios.get("/graphql?query="++Utils.Js.escape(match_query(role_id)))
+    |> then_(resp => resolve(asMatches(resp##data##data##matches)))
   );
 
 let getData = ({data}) => data;

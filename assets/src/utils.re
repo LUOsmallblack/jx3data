@@ -23,6 +23,20 @@ let rec zip(list1, list2) =
   | ([x, ...xs], [y, ...ys]) => [(x,y), ...zip(xs, ys)]
   };
 
+module Js = {
+  [@bs.val] external escape : string => string = "";
+}
+
+module StringMap = Map.Make({
+  type t = string;
+  let compare = compare;
+});
+
+let find_opt(key, map) =
+  try (Some(StringMap.find(key, map))) {
+  | Not_found => None
+  }
+
 module Link = {
   let component = ReasonReact.statelessComponent("Link");
   let handleClick = (href, event) =>

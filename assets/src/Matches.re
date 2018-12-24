@@ -11,6 +11,7 @@ type match = {
   roleIds: array(string),
   winner: int,
 };
+type matches = array(match);
 
 module RoleKungfu = {
   let component = ReasonReact.statelessComponent("RoleKungfu");
