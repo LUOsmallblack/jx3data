@@ -51,12 +51,12 @@ defmodule Jx3App.GraphQL do
       matches = from(m in Model.Match,
         order_by: [fragment("? DESC NULLS LAST", m.match_id)])
         |> Model.Dynamic.query(args)
-      matches = case args[:match_id] do
+      matches = case args[:role_id] do
         nil -> matches
-        match_id ->
+        role_id ->
           matches
           |> Ecto.Query.join(:inner, [m], r in Model.MatchRole, on: m.match_id == r.match_id)
-          |> Ecto.Query.where([m, r], r.role_id == ^match_id)
+          |> Ecto.Query.where([m, r], r.role_id == ^role_id)
           |> Ecto.Query.select([m, r], m)
       end
       matches = matches |> Model.Repo.all
