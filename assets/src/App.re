@@ -33,6 +33,13 @@ module Link = {
 }
 
 module Component = {
+  let getSummary = (_, self) =>
+    Js.Promise.(
+      Api.summary()
+      |> then_((summary) => resolve(self.ReasonReact.send(Summary(summary))))
+      |> ignore
+    );
+
   let index = (summary) =>
     <div>
       <div>summary</div>
@@ -62,6 +69,7 @@ let make = (_children) => {
   didMount: self => {
     let watcherID = ReasonReact.Router.watchUrl(url => self.send(Route(route(url))));
     self.onUnmount(() => ReasonReact.Router.unwatchUrl(watcherID));
+    self.handle(Component.getSummary, ())
   },
   render: ({state}) => {
     let summary = switch (state.summary) {

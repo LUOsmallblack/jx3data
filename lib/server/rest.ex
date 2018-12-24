@@ -60,19 +60,20 @@ defmodule Jx3App.Server.Rest do
 
   get "/summary/count" do
     send_resp(conn, 200, Jason.encode!(
-      Cache.call({:count}), pretty: true) |> format_html(opts))
+      Cache.call({:count}), pretty: true) # |> format_html(opts)
+    )
   end
 
   get "/roles" do
     roles = Cache.call({:roles})
     resp = Jason.encode!(roles, pretty: true)
-      |> format_html(opts)
+      # |> format_html(opts)
     send_resp(conn, 200, resp)
   end
 
   get "/role/log/:role_id" do
     role = Cache.call({:role_log, role_id})
-    resp = Jason.encode!(role, pretty: true) |> format_html(opts)
+    resp = Jason.encode!(role, pretty: true) # |> format_html(opts)
     send_resp(conn, 200, resp)
   end
 
@@ -83,7 +84,7 @@ defmodule Jx3App.Server.Rest do
       _ ->
         role = role |> Map.put(:name, "<role_id_log:#{role[:role_id]}>:" <> role[:name])
         resp = Jason.encode!(role, pretty: true)
-          |> format_html(opts)
+          # |> format_html(opts)
         send_resp(conn, 200, resp)
     end
   end
@@ -95,7 +96,7 @@ defmodule Jx3App.Server.Rest do
       _ ->
         roles = person[:roles] |> Enum.map(fn [id|t] -> ["<role_id>:"<>id | t] end)
         resp = Jason.encode!(person |> Map.put(:roles, roles), pretty: true)
-          |> format_html(opts)
+          # |> format_html(opts)
         send_resp(conn, 200, resp)
     end
   end
@@ -103,14 +104,14 @@ defmodule Jx3App.Server.Rest do
   get "/search/role/:role_name" do
     roles = Cache.call({:search_role, role_name})
     resp = Jason.encode!(roles, pretty: true)
-      |> format_html(opts)
+      # |> format_html(opts)
     send_resp(conn, 200, resp)
   end
 
   get "/search/kungfu/:kungfu" do
     roles = Cache.call({:search_kungfu, kungfu})
     resp = Jason.encode!(roles, pretty: true)
-      |> format_html(opts)
+      # |> format_html(opts)
     send_resp(conn, 200, resp)
   end
 
@@ -119,6 +120,6 @@ defmodule Jx3App.Server.Rest do
   end
 
   def not_found(conn, opts \\ %{}) do
-    send_resp(conn, 404, Jason.encode!(%{reason: "not found"}) |> html(opts))
+    send_resp(conn, 404, Jason.encode!(%{reason: "not found"}))
   end
 end

@@ -1,7 +1,7 @@
 import alias from 'rollup-plugin-alias';
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
-import replace from 'rollup-plugin-replace';
+import replace from 'rollup-plugin-re';
 import bucklescript from 'rollup-plugin-bucklescript';
 import copy from 'rollup-plugin-copy-glob';
 
@@ -34,9 +34,12 @@ export default {
       resolve: ['.js', '.re']
     }),
     replace({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+      patterns: [
+        { include: "node_modules/**", test: 'process.env.NODE_ENV', replace: JSON.stringify(process.env.NODE_ENV || 'development') },
+        { include: "src/**", test: /import \* as (.*) from ("axios")/, replace: "import $1 from $2" },
+      ],
     }),
-    resolve(),
+    resolve({browser: true}),
     commonjs(),
   ],
   external: ['react', 'react-dom'],
