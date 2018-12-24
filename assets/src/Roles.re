@@ -6,6 +6,7 @@ type role = {
   name: string,
   force: string,
 };
+type roles = array(role);
 
 module Role = {
   let component = ReasonReact.statelessComponent("Role");
