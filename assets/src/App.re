@@ -21,13 +21,21 @@ let route = url =>
 
 module Component = {
   let getSummary = ((), self) =>
-    Api.cacheData(Api.summary, summary => self.ReasonReact.send(Summary(summary)))
+    Api.cacheData(Api.summary, summary => self.ReasonReact.send(Summary(summary)));
 
   let getTop200 = ((), self) =>
-    Api.cacheData(Api.top200, roles => self.ReasonReact.send(Top200(roles)))
+    Api.cacheData(Api.top200, roles => self.ReasonReact.send(Top200(roles)));
 
   let getMatches = (role_id, self) =>
-    Api.cacheData(Api.matches(role_id), matches => self.ReasonReact.send(Matches(role_id, matches)))
+    Api.cacheData(Api.matches(role_id), matches => self.ReasonReact.send(Matches(role_id, matches)));
+
+
+  let fetchRoute = (route, self) =>
+    switch (route) {
+    | Index => self.ReasonReact.handle(getTop200, ())
+    | Role(role_id) => self.ReasonReact.handle(getMatches, role_id)
+    | _ => ()
+    };
 
   let index = (summary, roles) => {
     let roles = switch (Api.getData(roles)) {
@@ -38,7 +46,7 @@ module Component = {
       <div>summary</div>
       <div>roles</div>
     </div>;
-  }
+  };
 
   let role = (summary, matches, role_id) => {
     let matches = switch (Utils.find_opt(role_id, matches)) {
@@ -70,11 +78,7 @@ let make = (_children) => {
     | Route(route) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, page: route},
-          ({handle}) =>
-            switch (route) {
-            | Role(role_id) => handle(Component.getMatches, role_id)
-            | _ => ()
-            }
+          self => Component.fetchRoute(route, self)
         )
     | Summary(summary) => ReasonReact.Update({...state, summary: summary})
     | Top200(roles) => ReasonReact.Update({...state, top200: roles})
@@ -83,8 +87,7 @@ let make = (_children) => {
   didMount: self => {
     let watcherID = ReasonReact.Router.watchUrl(url => self.send(Route(route(url))));
     self.onUnmount(() => ReasonReact.Router.unwatchUrl(watcherID));
-    self.handle(Component.getSummary, ())
-    self.handle(Component.getTop200, ())
+    Component.fetchRoute(self.state.page, self)
   },
   render: ({state}) => {
     let summary = switch (Api.getData(state.summary)) {

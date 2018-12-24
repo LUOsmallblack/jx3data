@@ -20,7 +20,7 @@ module RoleKungfu = {
     render: _ => {
       let role_id_url = "/role/" ++ role_id;
       <span className="mr-1">
-        <a href=role_id_url>{ReasonReact.string(string_of_int(kungfu))}</a>
+        <Utils.Link href=role_id_url>{ReasonReact.string(string_of_int(kungfu))}</Utils.Link>
       </span>
     }
   }
