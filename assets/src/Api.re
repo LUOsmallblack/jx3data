@@ -15,6 +15,7 @@ type cache('a) = {
 
 external asSummary : Js.Json.t => Summary.summary = "%identity";
 external asRoles : Js.Json.t => Roles.roles = "%identity";
+external asRoleDetail : Js.Json.t => Roles.RoleCard.role_detail = "%identity";
 external asMatches : Js.Json.t => Matches.matches = "%identity";
 
 let summary = () =>
@@ -27,6 +28,12 @@ let top200 = () =>
   Js.Promise.(
     Axios.get("/api/roles")
     |> then_(resp => resolve(asRoles(resp##data)))
+  );
+
+let role = (role_id, ()) =>
+  Js.Promise.(
+    Axios.get("/api/role/" ++ role_id)
+    |> then_(resp => resolve(asRoleDetail(resp##data)))
   );
 
 let match_query = role_id => "{" ++ {j|matches(matchType:"3c",roleId:"$role_id")|j} ++

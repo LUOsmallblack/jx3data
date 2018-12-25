@@ -82,7 +82,7 @@ defmodule Jx3App.Server.Rest do
     case role do
       nil -> not_found(conn)
       _ ->
-        role = role |> Map.put(:name, "<role_id_log:#{role[:role_id]}>:" <> role[:name])
+        # role = role |> Map.put(:name, "<role_id_log:#{role[:role_id]}>:" <> role[:name])
         resp = Jason.encode!(role, pretty: true)
           # |> format_html(opts)
         send_resp(conn, 200, resp)

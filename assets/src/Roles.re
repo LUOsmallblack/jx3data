@@ -25,6 +25,33 @@ module Role = {
   }
 };
 
+module RoleCard = {
+  [@bs.deriving abstract]
+  type role_detail = {
+    [@bs.as "role_id"] roleId: string,
+    name: string,
+    [@bs.as "body_type"] bodyType: string,
+    force: string,
+    server: string,
+    zone: string,
+    [@bs.as "person_id"] personId: string,
+    [@bs.as "person_name"] personName: string,
+  };
+
+  let component = ReasonReact.statelessComponent("RoleCard");
+
+  let make = (~role: role_detail, _children) => {
+    ...component,
+    render: _ => {
+      <div className="d-inline-flex border border-info">
+        <div><span>{ReasonReact.string(role->nameGet)}</span><span>{ReasonReact.string(role->forceGet)}</span></div>
+        <div><span>{ReasonReact.string(role->zoneGet)}</span><span>{ReasonReact.string(role->serverGet)}</span></div>
+        <div><span>{ReasonReact.string(role->bodyTypeGet)}</span><span>{ReasonReact.string(role->personNameGet)}</span></div>
+      </div>
+    }
+  }
+};
+
 let component = ReasonReact.statelessComponent("Roles");
 
 let make = (~roles, _children) => {
