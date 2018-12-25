@@ -54,7 +54,7 @@ module Component = {
     | None => None
     };
     let matches = switch (matches) {
-    | Some(matches) => <Matches matches/>
+    | Some(matches) => <Matches matches role_id/>
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
     <div>

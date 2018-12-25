@@ -15,11 +15,12 @@ type matches = array(match);
 
 module RoleKungfu = {
   let component = ReasonReact.statelessComponent("RoleKungfu");
-  let make = (~role_id: string, ~kungfu: int, _children) => {
+  let make = (~bold=false, ~role_id: string, ~kungfu: int, _children) => {
     ...component,
     render: _ => {
       let role_id_url = "/role/" ++ role_id;
-      <span className="mr-1">
+      let class_name = if (bold) {" font-weight-bold"} else {""};
+      <span className=("mr-1"++class_name)>
         <Utils.Link href=role_id_url>{ReasonReact.string(string_of_int(kungfu))}</Utils.Link>
       </span>
     }
@@ -29,7 +30,7 @@ module RoleKungfu = {
 module Match = {
   let component = ReasonReact.statelessComponent("Match");
 
-  let make = (~match: match, _children) => {
+  let make = (~match: match, ~role_id as cur_role_id=?, _children) => {
     ...component,
     render: _ => {
       let (match_id, duration, grade, pvp_type, team1_score, team2_score, team1_kungfu, team2_kungfu, role_ids, winner) =
@@ -39,8 +40,16 @@ module Match = {
       let (team1_length, _team2_length) = (Array.length(team1_kungfu), Array.length(team2_kungfu));
       let role_id_list = Array.to_list(role_ids);
       let (team1_role_ids, team2_role_ids) = (Utils.take(team1_length, role_id_list), Utils.drop(team1_length, role_id_list));
-      let team1 = List.map(((kungfu, role_id)) => <RoleKungfu kungfu role_id key=role_id />, Utils.zip(team1_kungfu |> Array.to_list, team1_role_ids)) |> Array.of_list;
-      let team2 = List.map(((kungfu, role_id)) => <RoleKungfu kungfu role_id key=role_id />, Utils.zip(team2_kungfu |> Array.to_list, team2_role_ids)) |> Array.of_list;
+      let role_kungfus = (kungfus, role_ids) =>
+        List.map(
+          ((kungfu, role_id)) =>
+            switch (cur_role_id) {
+            | Some(cur_role_id) when cur_role_id == role_id => <RoleKungfu bold=true kungfu role_id key=role_id />
+            | _ => <RoleKungfu kungfu role_id key=role_id />
+            },
+          Utils.zip(kungfus, role_ids)) |> Array.of_list;
+      let team1 = role_kungfus(team1_kungfu |> Array.to_list, team1_role_ids);
+      let team2 = role_kungfus(team2_kungfu |> Array.to_list, team2_role_ids);
       <tr>
         <td className="jx3app_match_id">{ReasonReact.string({j|$match_id|j})}</td>
         <td>{ReasonReact.string(string_of_int(grade))}</td>
@@ -58,7 +67,7 @@ module Match = {
 
 let component = ReasonReact.statelessComponent("Matches");
 
-let make = (~matches, _children) => {
+let make = (~matches, ~role_id=?, _children) => {
   ...component,
   render: _ => {
     let th = (s) => <th scope="col">{ReasonReact.string(s)}</th>;
@@ -77,7 +86,7 @@ let make = (~matches, _children) => {
         </tr>
       </thead>
       <tbody>
-        {Array.map(match => <Match key={string_of_int(matchIdGet(match))} match />, matches) |> ReasonReact.array}
+        {Array.map(match => <Match key={string_of_int(matchIdGet(match))} match ?role_id />, matches) |> ReasonReact.array}
       </tbody>
     </table>
   }
