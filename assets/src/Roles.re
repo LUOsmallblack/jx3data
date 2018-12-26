@@ -44,7 +44,7 @@ module RoleCardLink = {
       | None => ref(None)
       | Some(x) => x
       };
-      let factory = () => "role: " ++ role_id;
+      let factory = () => ReasonReact.string("role: " ++ role_id);
       <Tooltip.Wrapper factory tooltipRef>
         <Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link>
       </Tooltip.Wrapper>

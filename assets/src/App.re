@@ -8,6 +8,7 @@ type action =
 
 type state = {
   page: route,
+  tooltip: ref(option(ReasonReact.reactRef)),
   summary: Api.cache(Summary.summary),
   top200: Api.cache(Roles.roles),
   roles: Utils.StringMap.t(Api.cache(Roles.RoleCard.role_detail)),
@@ -54,9 +55,10 @@ module Component = {
     </div>;
   };
 
-  let role = (summary, {matches, roles}, role_id) => {
-    let tooltipRef = ref(None);
-    let setTooltipRef = theRef => tooltipRef := Js.Nullable.toOption(theRef);
+  let role = (summary, {tooltip, matches, roles}, handle, role_id) => {
+    let setTooltipRef = (theRef, {ReasonReact.state}) => {
+      state.tooltip := Js.Nullable.toOption(theRef);
+    };
     let matches = switch (Utils.find_opt(role_id, matches)) {
     | Some(matches) => Api.getData(matches)
     | None => None
@@ -70,14 +72,14 @@ module Component = {
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
     let role = switch (role) {
-    | Some(role) => <Roles.RoleCardLink tooltipRef role_id={role->Roles.RoleCard.roleIdGet} name={role->Roles.RoleCard.nameGet}/>
+    | Some(role) => <Roles.RoleCardLink tooltipRef=tooltip role_id={role->Roles.RoleCard.roleIdGet} name={role->Roles.RoleCard.nameGet}/>
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
     <div>
       <div>summary</div>
       <div>role</div>
       <div>matches</div>
-      <Tooltip ref=setTooltipRef/>
+      <Tooltip ref={handle(setTooltipRef)}/>
     </div>
   };
 };
@@ -87,6 +89,7 @@ let make = (_children) => {
   ...component,
   initialState: () => {
     page: route(ReasonReact.Router.dangerouslyGetInitialUrl()),
+    tooltip: ref(None),
     summary: Api.emptyData(),
     top200: Api.emptyData(),
     roles: Utils.StringMap.empty,
@@ -111,7 +114,7 @@ let make = (_children) => {
     self.handle(Component.getSummary, ());
     Component.fetchRoute(self.state.page, self)
   },
-  render: ({state}) => {
+  render: ({state, handle}) => {
     let summary = switch (Api.getData(state.summary)) {
     | None => <Summary.Badge left="summary" right="calculating..." color="orange" />
     | Some(summary) => <Summary summary />
@@ -119,7 +122,7 @@ let make = (_children) => {
     switch (state.page) {
     | NotFound => ReasonReact.string("not found")
     | Index => Component.index(summary, state.top200)
-    | Role(role_id) => Component.role(summary, state, role_id)
+    | Role(role_id) => Component.role(summary, state, handle, role_id)
     }
   }
 };

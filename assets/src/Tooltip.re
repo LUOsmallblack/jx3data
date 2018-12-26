@@ -1,3 +1,6 @@
+type action = SetContent(array(ReasonReact.reactElement)) | Show(bool);
+type state = { show: bool, children: array(ReasonReact.reactElement), };
+
 module Wrapper = {
   type action = Open | Close;
   type state = {
@@ -10,9 +13,23 @@ module Wrapper = {
 
   let show = (factory, selfRef, tooltipRef) => {
     Js.log("show");
+    let children = [|factory()|];
+    switch (tooltipRef^) {
+    | None => ()
+    | Some(tooltipRef) =>
+      let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
+      tooltip.ReasonReact.send(SetContent(children));
+      tooltip.ReasonReact.send(Show(true));
+    };
   };
   let hide = (selfRef, tooltipRef) => {
     Js.log("hide");
+    switch (tooltipRef^) {
+    | None => ()
+    | Some(tooltipRef) =>
+      let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
+      tooltip.ReasonReact.send(Show(false));
+    };
   };
   let setSelfRef = (theRef, {ReasonReact.state}) => {
     state.selfRef := Js.Nullable.toOption(theRef);
@@ -38,18 +55,28 @@ module Wrapper = {
     render: self => {
       let enter = (_, self) => self.ReasonReact.send(Open);
       let leave = (_, self) => self.ReasonReact.send(Close);
-      <div ref={self.handle(setSelfRef)} onMouseEnter={self.handle(enter)} onMouseLeave={self.handle(leave)}>
+      <div ref={self.handle(setSelfRef)} className="d-inline" onMouseEnter={self.handle(enter)} onMouseLeave={self.handle(leave)}>
         ...children
       </div>
     }
   }
 };
 
-let component = ReasonReact.statelessComponent("Tooltip");
+let component = ReasonReact.reducerComponent("Tooltip");
 let make = (_children) => {
   ...component,
-  render: _ =>
+  initialState: () => {show: false, children: [|ReasonReact.string("no tip")|]},
+  reducer: (action, state) => {
+    switch (action) {
+    | SetContent(children) => ReasonReact.Update({...state, children})
+    | Show(show) => ReasonReact.Update({...state, show})
+    }
+  },
+  render: ({state}) => {
+    let show = state.show;
     <div>
-      {ReasonReact.string("no tip")}
+      <span>{ReasonReact.string({j|show($show): |j})}</span>
+      <span>...{state.children}</span>
     </div>
+  }
 }
