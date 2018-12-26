@@ -1,3 +1,7 @@
+type popper;
+[@bs.new] external createPopper : (Dom.element, Dom.element) => popper = "Popper";
+[@bs.send] external destroyPopper : popper => unit = "destroy";
+
 module type Component = {
   /* type component; */
   type props';
@@ -32,8 +36,7 @@ module Make = (C: Component) => {
       | Some(props) => <C' props>...children</C'>
       | None => {ReasonReact.string("loading...")}
       };
-      <div>
-        {ReasonReact.string({j|show($show): |j})}
+      <div hidden={!show} className="bg-light">
         {content}
       </div>
     }
@@ -42,11 +45,12 @@ module Make = (C: Component) => {
 
 module Wrapper = (C: Component) => {
   module Tooltip = Type(C);
-  type action = Open | Close;
+  type action = Open | Close | Popper(option(popper));
   type state = {
     tooltipRef: ref(option(ReasonReact.reactRef)),
     selfRef: ref(option(Dom.element)),
     status: action,
+    popper: option(popper),
   };
 
   let component = ReasonReact.reducerComponent("TooltipWrapper");
@@ -57,7 +61,7 @@ module Wrapper = (C: Component) => {
     | None => tooltip.ReasonReact.send(Tooltip.Reset);
     }
   };
-  let show = (factory, selfRef, tooltipRef) => {
+  let show = (factory, send, selfRef, tooltipRef) => {
     Js.log("show");
     switch (tooltipRef^) {
     | None => ()
@@ -65,10 +69,20 @@ module Wrapper = (C: Component) => {
       let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
       factory(setContent(tooltip));
       tooltip.ReasonReact.send(Tooltip.Show(true));
+      switch (selfRef^) {
+      | None => ()
+      | Some(refElem) =>
+        let popper = createPopper(refElem, ReactDOMRe.findDOMNode(tooltipRef));
+        send(Popper(Some(popper)));
+      }
     };
   };
-  let hide = (selfRef, tooltipRef) => {
+  let hide = (popper, send, _selfRef, tooltipRef) => {
     Js.log("hide");
+    switch (popper) {
+    | None => ()
+    | Some(popper) => destroyPopper(popper); send(Popper(None))
+    }
     switch (tooltipRef^) {
     | None => ()
     | Some(tooltipRef) =>
@@ -83,18 +97,19 @@ module Wrapper = (C: Component) => {
 
   let make = (~tooltipRef, ~factory, children) => {
     ...component,
-    initialState: () => {tooltipRef, selfRef: ref(None), status: Close},
+    initialState: () => {tooltipRef, selfRef: ref(None), status: Close, popper: None},
     reducer: (action, state) => {
       switch (action, state.status==action) {
+      | (Popper(popper), _) => ReasonReact.Update({...state, popper: popper})
       | (_, true) => ReasonReact.NoUpdate
       | (Open, _) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, status: Open},
-          self => show(factory, self.state.selfRef^, self.state.tooltipRef))
+          self => show(factory, self.send, self.state.selfRef, self.state.tooltipRef))
       | (Close, _) =>
         ReasonReact.UpdateWithSideEffects(
           {...state, status: Close},
-          self => hide(self.state.selfRef^, self.state.tooltipRef))
+          self => hide(self.state.popper, self.send, self.state.selfRef, self.state.tooltipRef))
       }
     },
     render: self => {
