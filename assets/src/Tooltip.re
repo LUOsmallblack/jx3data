@@ -5,13 +5,13 @@ module type Component = {
   let make': (~props: props', _) => ReasonReact.component(ReasonReact.stateless, ReasonReact.noRetainedProps, ReasonReact.actionless);
 };
 
-/* module Test = (C: Component) => {
-  let result = props => <C props/>
-}; */
-
-module Make = (C: Component) => {
+module Type = (C: Component) => {
   type action = Reset | SetProps(C.props') | Show(bool);
   type state = { show: bool, props: option(C.props'), };
+};
+
+module Make = (C: Component) => {
+  include Type(C);
   let component = ReasonReact.reducerComponent("Tooltip");
   module C' = {
     let make = C.make';
@@ -41,7 +41,7 @@ module Make = (C: Component) => {
 };
 
 module Wrapper = (C: Component) => {
-  module Tooltip = Make(C);
+  module Tooltip = Type(C);
   type action = Open | Close;
   type state = {
     tooltipRef: ref(option(ReasonReact.reactRef)),
