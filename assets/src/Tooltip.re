@@ -1,7 +1,47 @@
-type action = SetContent(array(ReasonReact.reactElement)) | Show(bool);
-type state = { show: bool, children: array(ReasonReact.reactElement), };
+module type Component = {
+  /* type component; */
+  type props';
+  /* TODO: support other componentSpec here */
+  let make': (~props: props', _) => ReasonReact.component(ReasonReact.stateless, ReasonReact.noRetainedProps, ReasonReact.actionless);
+};
 
-module Wrapper = {
+/* module Test = (C: Component) => {
+  let result = props => <C props/>
+}; */
+
+module Make = (C: Component) => {
+  type action = Reset | SetProps(C.props') | Show(bool);
+  type state = { show: bool, props: option(C.props'), };
+  let component = ReasonReact.reducerComponent("Tooltip");
+  module C' = {
+    let make = C.make';
+  };
+  let make = (children) => {
+    ...component,
+    initialState: () => {show: false, props: None},
+    reducer: (action, state) => {
+      switch (action) {
+      | Reset => ReasonReact.Update({...state, props: None})
+      | SetProps(props) => ReasonReact.Update({...state, props: Some(props)})
+      | Show(show) => ReasonReact.Update({...state, show})
+      }
+    },
+    render: ({state}) => {
+      let {show, props} = state;
+      let content = switch (props) {
+      | Some(props) => <C' props>...children</C'>
+      | None => {ReasonReact.string("loading...")}
+      };
+      <div>
+        {ReasonReact.string({j|show($show): |j})}
+        {content}
+      </div>
+    }
+  }
+};
+
+module Wrapper = (C: Component) => {
+  module Tooltip = Make(C);
   type action = Open | Close;
   type state = {
     tooltipRef: ref(option(ReasonReact.reactRef)),
@@ -11,15 +51,20 @@ module Wrapper = {
 
   let component = ReasonReact.reducerComponent("TooltipWrapper");
 
+  let setContent = (tooltip, props) => {
+    switch (props) {
+    | Some(props) => tooltip.ReasonReact.send(Tooltip.SetProps(props));
+    | None => tooltip.ReasonReact.send(Tooltip.Reset);
+    }
+  };
   let show = (factory, selfRef, tooltipRef) => {
     Js.log("show");
-    let children = [|factory()|];
     switch (tooltipRef^) {
     | None => ()
     | Some(tooltipRef) =>
       let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
-      tooltip.ReasonReact.send(SetContent(children));
-      tooltip.ReasonReact.send(Show(true));
+      factory(setContent(tooltip));
+      tooltip.ReasonReact.send(Tooltip.Show(true));
     };
   };
   let hide = (selfRef, tooltipRef) => {
@@ -28,7 +73,7 @@ module Wrapper = {
     | None => ()
     | Some(tooltipRef) =>
       let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
-      tooltip.ReasonReact.send(Show(false));
+      tooltip.ReasonReact.send(Tooltip.Show(false));
     };
   };
   let setSelfRef = (theRef, {ReasonReact.state}) => {
@@ -61,22 +106,3 @@ module Wrapper = {
     }
   }
 };
-
-let component = ReasonReact.reducerComponent("Tooltip");
-let make = (_children) => {
-  ...component,
-  initialState: () => {show: false, children: [|ReasonReact.string("no tip")|]},
-  reducer: (action, state) => {
-    switch (action) {
-    | SetContent(children) => ReasonReact.Update({...state, children})
-    | Show(show) => ReasonReact.Update({...state, show})
-    }
-  },
-  render: ({state}) => {
-    let show = state.show;
-    <div>
-      <span>{ReasonReact.string({j|show($show): |j})}</span>
-      <span>...{state.children}</span>
-    </div>
-  }
-}

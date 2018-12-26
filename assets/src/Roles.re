@@ -21,7 +21,8 @@ module RoleCard = {
     [@bs.as "person_name"] personName: string,
   };
 
-  let component = ReasonReact.statelessComponent("RoleCard");
+  type component = ReasonReact.component(ReasonReact.stateless, ReasonReact.noRetainedProps, ReasonReact.actionless);
+  let component: component = ReasonReact.statelessComponent("RoleCard");
 
   let make = (~role: role_detail, _children) => {
     ...component,
@@ -32,22 +33,28 @@ module RoleCard = {
         <div><span>{ReasonReact.string(role->bodyTypeGet)}</span><span>{ReasonReact.string(role->personNameGet)}</span></div>
       </div>
     }
+  };
+  module Wrapped = {
+    type component = ReasonReact.component(ReasonReact.stateless, ReasonReact.noRetainedProps, ReasonReact.actionless);
+    type props' = { role: role_detail };
+    let make' = (~props: props', children) =>
+      make(~role=props.role, children)
   }
 };
 
 module RoleCardLink = {
+  module TooltipWrapper = Tooltip.Wrapper(RoleCard.Wrapped);
   let component = ReasonReact.statelessComponent("RoleCardLink");
-  let make = (~role_id, ~name, ~tooltipRef=?, _children) => {
+  let make = (~role_id, ~name, ~factory=callback=>callback(None), ~tooltipRef=?, _children) => {
     ...component,
     render: _ => {
       let tooltipRef = switch tooltipRef {
       | None => ref(None)
       | Some(x) => x
       };
-      let factory = () => ReasonReact.string("role: " ++ role_id);
-      <Tooltip.Wrapper factory tooltipRef>
+      <TooltipWrapper factory tooltipRef>
         <Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link>
-      </Tooltip.Wrapper>
+      </TooltipWrapper>
     }
   }
 };

@@ -55,6 +55,7 @@ module Component = {
     </div>;
   };
 
+  module Tooltip' = Tooltip.Make(Roles.RoleCard.Wrapped);
   let role = (summary, {tooltip, matches, roles}, handle, role_id) => {
     let setTooltipRef = (theRef, {ReasonReact.state}) => {
       state.tooltip := Js.Nullable.toOption(theRef);
@@ -71,15 +72,18 @@ module Component = {
     | Some(matches) => <Matches matches role_id/>
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
+    let factory = callback => Api.cacheData(Api.role(role_id), role => callback(
+      switch (Api.getData(role)) {
+      | Some(role) => Some({Roles.RoleCard.Wrapped.role: role}) | None => None}));
     let role = switch (role) {
-    | Some(role) => <Roles.RoleCardLink tooltipRef=tooltip role_id={role->Roles.RoleCard.roleIdGet} name={role->Roles.RoleCard.nameGet}/>
-    | None => <div>{ReasonReact.string("loading...")}</div>
+    | Some(role) => <Roles.RoleCardLink tooltipRef=tooltip factory role_id name={role->Roles.RoleCard.nameGet}/>
+    | None => <Roles.RoleCardLink tooltipRef=tooltip factory role_id name="loading..."/>
     };
     <div>
       <div>summary</div>
       <div>role</div>
       <div>matches</div>
-      <Tooltip ref={handle(setTooltipRef)}/>
+      <Tooltip' ref={handle(setTooltipRef)}/>
     </div>
   };
 };
