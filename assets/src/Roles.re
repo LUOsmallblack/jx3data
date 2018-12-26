@@ -8,23 +8,6 @@ type role = {
 };
 type roles = array(role);
 
-module Role = {
-  let component = ReasonReact.statelessComponent("Role");
-
-  let make = (~role: role, _children) => {
-    ...component,
-    render: _ => {
-      let (role_id, name, force, score, win_rate) = (roleIdGet(role), nameGet(role), forceGet(role), scoreGet(role), winRateGet(role));
-      <tr>
-        <td><Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link></td>
-        <td className="jx3app_force">{ReasonReact.string(force)}</td>
-        <td>{ReasonReact.string(string_of_int(score))}</td>
-        <td>{ReasonReact.string(string_of_float(win_rate))}</td>
-      </tr>
-    }
-  }
-};
-
 module RoleCard = {
   [@bs.deriving abstract]
   type role_detail = {
@@ -48,6 +31,40 @@ module RoleCard = {
         <div><span>{ReasonReact.string(role->zoneGet)}</span><span>{ReasonReact.string(role->serverGet)}</span></div>
         <div><span>{ReasonReact.string(role->bodyTypeGet)}</span><span>{ReasonReact.string(role->personNameGet)}</span></div>
       </div>
+    }
+  }
+};
+
+module RoleCardLink = {
+  let component = ReasonReact.statelessComponent("RoleCardLink");
+  let make = (~role_id, ~name, ~tooltipRef=?, _children) => {
+    ...component,
+    render: _ => {
+      let tooltipRef = switch tooltipRef {
+      | None => ref(None)
+      | Some(x) => x
+      };
+      let factory = () => "role: " ++ role_id;
+      <Tooltip.Wrapper factory tooltipRef>
+        <Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link>
+      </Tooltip.Wrapper>
+    }
+  }
+};
+
+module Role = {
+  let component = ReasonReact.statelessComponent("Role");
+
+  let make = (~role: role, ~tooltipRef=?, _children) => {
+    ...component,
+    render: _ => {
+      let (role_id, name, force, score, win_rate) = (roleIdGet(role), nameGet(role), forceGet(role), scoreGet(role), winRateGet(role));
+      <tr>
+        <td><RoleCardLink role_id name ?tooltipRef/></td>
+        <td className="jx3app_force">{ReasonReact.string(force)}</td>
+        <td>{ReasonReact.string(string_of_int(score))}</td>
+        <td>{ReasonReact.string(string_of_float(win_rate))}</td>
+      </tr>
     }
   }
 };

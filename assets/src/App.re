@@ -55,6 +55,8 @@ module Component = {
   };
 
   let role = (summary, {matches, roles}, role_id) => {
+    let tooltipRef = ref(None);
+    let setTooltipRef = theRef => tooltipRef := Js.Nullable.toOption(theRef);
     let matches = switch (Utils.find_opt(role_id, matches)) {
     | Some(matches) => Api.getData(matches)
     | None => None
@@ -68,18 +70,19 @@ module Component = {
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
     let role = switch (role) {
-    | Some(role) => <Roles.RoleCard role/>
+    | Some(role) => <Roles.RoleCardLink tooltipRef role_id={role->Roles.RoleCard.roleIdGet} name={role->Roles.RoleCard.nameGet}/>
     | None => <div>{ReasonReact.string("loading...")}</div>
     };
     <div>
       <div>summary</div>
       <div>role</div>
       <div>matches</div>
+      <Tooltip ref=setTooltipRef/>
     </div>
   };
 };
 
-let component = ReasonReact.reducerComponent("RoleKungfu");
+let component = ReasonReact.reducerComponent("App");
 let make = (_children) => {
   ...component,
   initialState: () => {
