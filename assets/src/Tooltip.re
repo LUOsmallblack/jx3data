@@ -10,8 +10,8 @@ module type Component = {
 };
 
 module Type = (C: Component) => {
-  type action = Reset | SetProps(C.props') | Show(bool);
-  type state = { show: bool, props: option(C.props'), };
+  type action = Reset | SetProps(C.props') | Show(Dom.element, bool);
+  type state = { source: option(Dom.element), show: bool, props: option(C.props'), };
 };
 
 module Make = (C: Component) => {
@@ -22,12 +22,14 @@ module Make = (C: Component) => {
   };
   let make = (children) => {
     ...component,
-    initialState: () => {show: false, props: None},
+    initialState: () => {show: false, props: None, source: None},
     reducer: (action, state) => {
       switch (action) {
       | Reset => ReasonReact.Update({...state, props: None})
       | SetProps(props) => ReasonReact.Update({...state, props: Some(props)})
-      | Show(show) => ReasonReact.Update({...state, show})
+      | Show(source, true) => ReasonReact.Update({...state, source: Some(source), show: true})
+      | Show(source, false) when Some(source) == state.source => ReasonReact.Update({...state, show: false})
+      | Show(_, false) => ReasonReact.NoUpdate
       }
     },
     render: ({state}) => {
@@ -63,31 +65,29 @@ module Wrapper = (C: Component) => {
   };
   let show = (factory, send, selfRef, tooltipRef) => {
     Js.log("show");
-    switch (tooltipRef^) {
-    | None => ()
-    | Some(tooltipRef) =>
+    switch (tooltipRef^, selfRef^) {
+    | (_, None)
+    | (None, _) => ()
+    | (Some(tooltipRef), Some(refElem)) =>
       let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
       factory(setContent(tooltip));
-      tooltip.ReasonReact.send(Tooltip.Show(true));
-      switch (selfRef^) {
-      | None => ()
-      | Some(refElem) =>
-        let popper = createPopper(refElem, ReactDOMRe.findDOMNode(tooltipRef));
-        send(Popper(Some(popper)));
-      }
+      tooltip.ReasonReact.send(Tooltip.Show(refElem, true));
+      let popper = createPopper(refElem, ReactDOMRe.findDOMNode(tooltipRef));
+      send(Popper(Some(popper)));
     };
   };
-  let hide = (popper, send, _selfRef, tooltipRef) => {
+  let hide = (popper, send, selfRef, tooltipRef) => {
     Js.log("hide");
     switch (popper) {
     | None => ()
-    | Some(popper) => destroyPopper(popper); send(Popper(None))
+    | Some(popper) => /*destroyPopper(popper);*/ send(Popper(None))
     }
-    switch (tooltipRef^) {
-    | None => ()
-    | Some(tooltipRef) =>
+    switch (tooltipRef^, selfRef^) {
+    | (_, None)
+    | (None, _) => ()
+    | (Some(tooltipRef), Some(refElem)) =>
       let tooltip = Obj.magic(Obj.magic(tooltipRef)##self());
-      tooltip.ReasonReact.send(Tooltip.Show(false));
+      tooltip.ReasonReact.send(Tooltip.Show(refElem, false));
     };
   };
   let setSelfRef = (theRef, {ReasonReact.state}) => {
