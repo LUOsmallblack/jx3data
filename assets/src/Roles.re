@@ -27,10 +27,10 @@ module RoleCard = {
   let make = (~role: role_detail, _children) => {
     ...component,
     render: _ => {
-      <div className="d-inline-flex border border-info">
-        <div><span>{ReasonReact.string(role->nameGet)}</span><span>{ReasonReact.string(role->forceGet)}</span></div>
-        <div><span>{ReasonReact.string(role->zoneGet)}</span><span>{ReasonReact.string(role->serverGet)}</span></div>
-        <div><span>{ReasonReact.string(role->bodyTypeGet)}</span><span>{ReasonReact.string(role->personNameGet)}</span></div>
+      <div className="small p-1 rounded">
+        <div><span>{ReasonReact.string(role->nameGet)}</span><span className="float-right">{ReasonReact.string(role->forceGet)}</span></div>
+        <div><span className="small">{ReasonReact.string(role->personNameGet)}</span><span className="float-right">{ReasonReact.string(role->bodyTypeGet)}</span></div>
+        <div><span className="mr-2">{ReasonReact.string(role->zoneGet)}</span><span className="float-right">{ReasonReact.string(role->serverGet)}</span></div>
       </div>
     }
   };
@@ -45,14 +45,14 @@ module RoleCard = {
 module RoleCardLink = {
   module TooltipWrapper = Tooltip.Wrapper(RoleCard.Wrapped);
   let component = ReasonReact.statelessComponent("RoleCardLink");
-  let make = (~role_id, ~name, ~factory=callback=>callback(None), ~tooltipRef=?, _children) => {
+  let make = (~role_id, ~name, ~factory=(_,callback)=>callback(None), ~tooltipRef=?, _children) => {
     ...component,
     render: _ => {
       let tooltipRef = switch tooltipRef {
       | None => ref(None)
       | Some(x) => x
       };
-      <TooltipWrapper factory tooltipRef>
+      <TooltipWrapper factory={factory(role_id)} tooltipRef>
         <Utils.Link href=("/role/"++role_id)>{ReasonReact.string(name)}</Utils.Link>
       </TooltipWrapper>
     }

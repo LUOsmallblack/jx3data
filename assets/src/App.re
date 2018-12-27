@@ -68,15 +68,15 @@ module Component = {
     | Some(role) => Api.getData(role)
     | None => None
     };
-    let matches = switch (matches) {
-    | Some(matches) => <Matches matches role_id/>
-    | None => <div>{ReasonReact.string("loading...")}</div>
-    };
-    let factory = callback => Api.cacheData(Api.role(role_id), role => callback(
+    let factory = (role_id, callback) => Api.cacheData(Api.role(role_id), role => callback(
       switch (Api.getData(role)) {
       | Some(role) => Some({Roles.RoleCard.Wrapped.role: role}) | None => None}));
+    let matches = switch (matches) {
+    | Some(matches) => <Matches matches role_id role_factory=factory tooltipRef=tooltip />
+    | None => <div>{ReasonReact.string("loading...")}</div>
+    };
     let role = switch (role) {
-    | Some(role) => <Roles.RoleCardLink tooltipRef=tooltip factory role_id name={role->Roles.RoleCard.nameGet}/>
+    | Some(role) => <Roles.RoleCard role/>
     | None => <Roles.RoleCardLink tooltipRef=tooltip factory role_id name="loading..."/>
     };
     <div>
