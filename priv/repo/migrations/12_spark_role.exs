@@ -16,7 +16,7 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
   end
 
   def change do
-    role = ~s[#{dbname()}_reader]
+    role = ~s["#{dbname()}_reader"]
     spark_role = ~s["apache-spark"]
     match_schemas = ~w[match_2c match_3c match_5c match_2d match_3d match_5d match_2m match_3m match_5m]a |> Enum.join(", ")
     create_role(role)

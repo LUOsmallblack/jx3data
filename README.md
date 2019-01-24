@@ -50,7 +50,8 @@ _build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all
 
 1. postgresql
     ```shell
-    pg_ctl -D data initdb
+    pg_ctl -D data -o "--locale=en_US.UTF-8" initdb
+    # change unix_socket_directories in db/data/postgresql.conf if necessary
     # start/stop/restart
     pg_ctl -D data -o "-p5733" -l postgres.log start
     # user mix ecto.create/ecto.drop instead
