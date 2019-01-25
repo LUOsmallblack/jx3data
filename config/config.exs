@@ -30,12 +30,12 @@ use Mix.Config
 #     import_config "#{Mix.env}.exs"
 
 config :logger,
-  backends: [{LoggerFileBackend, :error_log}, :console]
+  backends: [{Jx3App.Sword.LoggerBackend, :error_log}, :console]
 config :logger, :console,
   level: :info
 config :logger, :error_log,
-  level: :error,
-  path: "log/elixir.log"
+  level: :info,
+  path: Jx3App.Sword.SwordRepo
 
 config :jx3app, Jx3App.Model.Repo, []
 

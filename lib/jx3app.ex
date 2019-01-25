@@ -91,6 +91,7 @@ defmodule Jx3App.Application do
       # Define workers and child supervisors to be supervised
       # worker(BigLebowski.Worker, [arg1, arg2, arg3])
       worker(Jx3App.Model.Repo, [], restart: :transient),
+      worker(Jx3App.Sword.SwordRepo, [], restart: :transient),
       worker(Jx3App.Const, [], restart: :transient),
       worker(Jx3App.Task, [], restart: :transient),
     ] ++
