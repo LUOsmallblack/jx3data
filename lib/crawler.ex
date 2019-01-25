@@ -66,6 +66,13 @@ defmodule Jx3App.Crawler do
     Map.put(o, :person_id, nil) |> Model.Query.update_role |> Utils.unwrap
   end
 
+  def save_lamb_role(%{person_info: p, role_info: r}) do
+    person_id = Map.get(p, :person_id)
+    if person_id do p |> Model.Query.update_person end
+    r = r |> Utils.filter_into(%{})
+    Map.put(r, :person_id, person_id) |> Model.Query.update_lamb_role |> Utils.unwrap
+  end
+
   def save_match(nil, _), do: nil
   def save_match(detail, m) do
     detail |> Map.get(:roles) |> Enum.map(fn r ->
@@ -161,9 +168,9 @@ defmodule Jx3App.Crawler do
     if person_id != "" and person_id != nil do
       api({:person_roles, person_id}) |> Enum.map(fn r ->
         case r[:role_info][:level] do
-          "95" -> save_role(r) |> check_role
-          95 -> save_role(r) |> check_role
-          _ -> r[:role_info]
+          "100" -> save_role(r) |> check_role
+          100 -> save_role(r) |> check_role
+          _ -> save_lamb_role(r)
         end |> Utils.unstruct |> Map.put(:seen, Date.utc_today) |> Model.Query.insert_role_log
       end)
     end

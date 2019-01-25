@@ -1,5 +1,5 @@
 defmodule Jx3App.Model do
-  alias Jx3App.Model.{Item, Person, Role, RoleLog, RolePerformance, RoleKungfu, RolePerformanceLog, Match, MatchRole, MatchLog}
+  alias Jx3App.Model.{Item, Person, Role, LambRole, RoleLog, RolePerformance, RoleKungfu, RolePerformanceLog, Match, MatchRole, MatchLog}
 
   defmodule Repo do
     use Ecto.Repo,
@@ -105,11 +105,27 @@ defmodule Jx3App.Model do
       r |> Role.changeset(role) |> Repo.insert_or_update
     end
 
+    def update_lamb_role(%{global_id: id} = role) do
+      r = case Repo.get(LambRole, id) do
+        nil -> %LambRole{global_id: id}
+        role -> role
+      end
+      r |> LambRole.changeset(role) |> Repo.insert_or_update
+    end
+
+    def remove_lamb_role(%{global_id: id}) do
+      r = Repo.get(LambRole, id)
+      if r do
+        r |> Repo.delete
+      end
+    end
+
     def insert_role_log(%{global_id: _} = role) do
       query = ~w(global_id name zone server)a
       |> Enum.map(&{&1, Map.get(role, &1) || ""})
       |> Keyword.put(:role_id, Map.get(role, :role_id) || 0)
 
+      remove_lamb_role(role)
       case Repo.get_by(RoleLog, query) do
         nil -> %RoleLog{} |> RoleLog.changeset(query)
         role -> role

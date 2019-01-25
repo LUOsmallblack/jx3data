@@ -50,7 +50,11 @@ defmodule Jx3App.Application do
     parse_args(t, put_in(config, [:crawler, :mode], mode))
   end
   def parse_args(["--crawler-type", match_types | t], config) do
-    match_types = String.split(match_types, ",")
+    match_types = if match_types == "none" do
+      []
+    else
+      String.split(match_types, ",")
+    end
     parse_args(t, put_in(config, [:crawler, :match_types], match_types))
   end
   def parse_args(["--help" | _], _config) do
@@ -58,7 +62,7 @@ defmodule Jx3App.Application do
       Options:
         --role role1,role2,...: role in #{inspect(@allowed_roles)}, default: :none
         --crawler-mode mode: mode in #{inspect(@allowed_crawler_mode)}, default: :recent
-        --crawler-type type1,type2,...: type in [all, {2,3,5}{c,d,m}], default: 3c
+        --crawler-type type1,type2,...: type in [all, none, {2,3,5}{c,d,m}], default: 3c
     """)
     nil
   end
