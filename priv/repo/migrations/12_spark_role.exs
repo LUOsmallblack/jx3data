@@ -19,7 +19,8 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
     role = ~s["#{dbname()}_reader"]
     spark_role = ~s["apache-spark"]
     match_schemas = ~w[match_2c match_3c match_5c match_2d match_3d match_5d match_2m match_3m match_5m]a |> Enum.join(", ")
-    create_role(role)
+    create_role role, true
+    create_role role, false
     # https://stackoverflow.com/questions/19045149/error-permission-denied-for-schema-user1-gmail-com-at-character-46
     execute_all """
       GRANT SELECT ON ALL TABLES IN SCHEMA public, #{match_schemas} TO #{role};
@@ -34,7 +35,7 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
             ~s|REVOKE #{role} FROM #{spark_role}|
   end
 
-  def create_role(name) do
+  def create_role(name, force) do
     execute """
     DO language plpgsql $$
     BEGIN
@@ -43,6 +44,6 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
       RAISE NOTICE '#{name} role exists, not re-creating';
     END
     $$
-    """, "DROP ROLE #{name}"
+    """, (if force do "DROP ROLE #{name}" else "" end)
   end
 end
