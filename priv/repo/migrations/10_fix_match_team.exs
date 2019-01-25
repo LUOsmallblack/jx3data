@@ -5,9 +5,12 @@ defmodule Jx3App.Model.Repo.Migrations.FixMatchTeam do
     change("match_2c")
     add_match_role_id("match_3c")
     change("match_5c")
-    change("match_2d")
-    change("match_3d")
-    change("match_5d")
+    # change("match_2d")
+    # change("match_3d")
+    # change("match_5d")
+    change("match_2m")
+    change("match_3m")
+    change("match_5m")
   end
 
   def change(prefix) do

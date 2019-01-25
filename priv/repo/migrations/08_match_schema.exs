@@ -6,9 +6,9 @@ defmodule Jx3App.Model.Repo.Migrations.FixMatchSchema do
 
     schema "match_2c", src: "match_3c"
     schema "match_5c", src: "match_3c"
-    schema "match_2d", src: "match_3c"
-    schema "match_3d", src: "match_3c"
-    schema "match_5d", src: "match_3c"
+    # schema "match_2d", src: "match_3c"
+    # schema "match_3d", src: "match_3c"
+    # schema "match_5d", src: "match_3c"
     schema "match_2m", src: "match_3c"
     schema "match_3m", src: "match_3c"
     schema "match_5m", src: "match_3c"
