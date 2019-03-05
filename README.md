@@ -86,3 +86,10 @@ _build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all
     # start/stop/clean/logs/console
     model/start.sh start
     ```
+
+# migration
+```shell
+mix ecto.create
+mix ecto.migrate
+pg_restore -a -p5733 -djx3-2019Q1 roles.sql -hlocalhost
+```

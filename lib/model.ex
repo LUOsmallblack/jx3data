@@ -136,15 +136,17 @@ defmodule Jx3App.Model do
       Repo.get(Role, id)
     end
 
-    def get_roles(opts \\ [match_type: "3c", limit: 5000]) do
+    def get_roles(opts \\ [match_type: "3c", offset: 0, limit: 5000]) do
       match_type = opts[:match_type] || "3c"
       limit = opts[:limit] || 5000
+      offset = opts[:offset] || 0
       query = from(
         r in Role,
         left_join: s in RolePerformance,
         on: r.global_id == s.role_id,
-        where: s.match_type == ^match_type,
+        where: s.match_type == ^match_type or is_nil(s.match_type),
         order_by: [fragment("? DESC NULLS LAST", s.score)],
+        offset: ^offset,
         select: {r, s})
       case limit do
         :all -> query

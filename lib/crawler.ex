@@ -220,6 +220,7 @@ defmodule Jx3App.Crawler do
     rank = new_rank || old_rank
     limit = cond do
       limit -> limit
+      is_nil(rank) -> 10
       rank >= 0 -> 100
       rank >= -3 -> 50
       rank >= -10 -> 20
@@ -279,7 +280,8 @@ defmodule Jx3App.Crawler do
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, %{match_type: match_type, ranking: ranking, fetched_count: fetched_count, fetched_at: last}, opts \\ []) do
+  def fetch(role, match_type, perf, opts \\ [])
+  def fetch(role, match_type, %{ranking: ranking, fetched_count: fetched_count, fetched_at: last}, opts) do
     perf = %{ranking: ranking}
     cond do
       opts[:mode] == :setup ->
@@ -296,6 +298,10 @@ defmodule Jx3App.Crawler do
     end
   end
 
+  def fetch(role, match_type, nil, opts) do
+    do_fetch(role, match_type, %{}, Keyword.put(opts, :limit, 100))
+  end
+
   def run(opts \\ [mode: :recent]) do
     {match_types, opts} = Keyword.pop(opts, :match_types)
     {match_type, opts} = Keyword.pop(opts, :match_type)
@@ -306,10 +312,15 @@ defmodule Jx3App.Crawler do
     end
   end
 
-  def do_run(match_type, opts) do
+  def do_run(match_type, offset \\ 0, opts) do
     name = opts[:name] || "crawler_#{match_type}"
-    roles = Model.Query.get_roles(match_type: match_type, limit: :all)
-    Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, p, opts) end, nil)
+    limit = 5000
+    roles = Model.Query.get_roles(match_type: match_type, offset: offset, limit: limit)
+    if not Enum.empty?(roles) do
+      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, offset+limit, opts) end)
+    else
+      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, 0, opts) end)
+    end
   end
 
   def stop(opts \\ []) do

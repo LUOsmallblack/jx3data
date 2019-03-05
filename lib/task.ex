@@ -57,9 +57,9 @@ defmodule Jx3App.Task do
     end)
   end
 
-  def start_task(name, list, func, parent) do
+  def start_task(name, list, func, parent, success \\ fn -> :ok end) do
     count = Enum.count(list)
-    task = %{name: name, list: list, func: func, parent: parent, count: count, status: :not_started}
+    task = %{name: name, list: list, func: func, success: success, parent: parent, count: count, status: :not_started}
     case get(name) do
       {:not_exist, _} -> start_task(task)
       {:finished, _} -> start_task(task)
@@ -68,7 +68,7 @@ defmodule Jx3App.Task do
     end
   end
 
-  def start_task(%{name: name, list: list, func: func, parent: parent, count: count, status: :not_started} = t) do
+  def start_task(%{name: name, list: list, func: func, success: success, parent: parent, count: count, status: :not_started} = t) do
     put(name, t)
     {:ok, task} = Task.start(fn ->
       update_status(name, :started)
@@ -88,6 +88,7 @@ defmodule Jx3App.Task do
           :exit, e when e != :stop -> {:error, e}
         end
       end)
+      success.()
       update_status(name, :finished)
     end)
     Agent.update(@name, fn tasks -> put_in(tasks, [name, :task], task) end)
