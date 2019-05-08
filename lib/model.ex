@@ -1,4 +1,5 @@
 defmodule Jx3App.Model do
+  require Logger
   alias Jx3App.Model.{Item, Person, Role, LambRole, RoleLog, RolePerformance, RoleKungfu, RolePerformanceLog, Match, MatchRole, MatchLog}
 
   defmodule Repo do
@@ -121,19 +122,29 @@ defmodule Jx3App.Model do
     end
 
     def insert_role_log(%{global_id: _} = role) do
-      query = ~w(global_id name zone server)a
-      |> Enum.map(&{&1, Map.get(role, &1) || ""})
-      |> Keyword.put(:role_id, Map.get(role, :role_id) || 0)
+      if Map.get(role, :role_id, "") != "" and Map.get(role, :global_id, "") != "" do
+        query = ~w(global_id name zone server)a
+        |> Enum.map(&{&1, Map.get(role, &1) || ""})
+        |> Keyword.put(:role_id, Map.get(role, :role_id) || 0)
 
-      remove_lamb_role(role)
-      case Repo.get_by(RoleLog, query) do
-        nil -> %RoleLog{} |> RoleLog.changeset(query)
-        role -> role
-      end |> RoleLog.changeset(role) |> Repo.insert_or_update
+        remove_lamb_role(role)
+        case Repo.get_by(RoleLog, query) do
+          nil -> %RoleLog{} |> RoleLog.changeset(query)
+          role -> role
+        end |> RoleLog.changeset(role) |> Repo.insert_or_update
+      end
     end
 
     def get_role(id) do
       Repo.get(Role, id)
+    end
+
+    def get_role(match_type, id) do
+      role = get_role(id)
+      perfs = from(p in RolePerformance,
+        where: p.match_type == ^match_type and p.role_id == ^id
+      ) |> Repo.all |> Enum.at(0)
+      {role, perfs}
     end
 
     def get_roles(opts \\ [match_type: "3c", offset: 0, limit: 5000]) do

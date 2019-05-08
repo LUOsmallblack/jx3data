@@ -32,6 +32,7 @@ defmodule Jx3App.Application do
     end
   end
 
+  def pre_parse_args(["run" | t], config), do: pre_parse_args(t, config)
   def pre_parse_args(["--" | t], config), do: pre_parse_args(t, config)
   def pre_parse_args(t, config), do: parse_args(t, config)
   def parse_args(["--role", roles | t], config) do

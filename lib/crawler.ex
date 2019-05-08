@@ -76,6 +76,7 @@ defmodule Jx3App.Crawler do
   def save_match(nil, _), do: nil
   def save_match(detail, m) do
     detail |> Map.get(:roles) |> Enum.map(fn r ->
+      # Logger.info("save_match #{inspect(r)}")
       role_seen(r, DateTime.from_unix(detail[:start_time]) |> Utils.unwrap)
     end)
     avg_grade = case Map.get(detail, :grade, nil) do
@@ -173,6 +174,7 @@ defmodule Jx3App.Crawler do
           _ -> save_lamb_role(r)
         end |> Utils.unstruct |> Map.put(:seen, Date.utc_today) |> Model.Query.insert_role_log
       end)
+      Model.Query.update_person(%{person_id: person_id, fetched_at: NaiveDateTime.utc_now})
     end
   end
 
@@ -197,67 +199,14 @@ defmodule Jx3App.Crawler do
     detail
   end
 
-  defp do_fetch_count(new_perf, limit, old_fetched_to, old_rank) do
-    {fetched_to, count, new_rank} =
-      case new_perf do
-        nil -> {old_fetched_to, nil, nil}
-        _ ->
-          {fetched_to, count} =
-            case {new_perf[:total_count], old_fetched_to} do
-              {nil, y} -> {y, nil}
-              {x, nil} -> {x, nil}
-              {x, y} -> {x, x - y}
-            end
-          ranking = new_perf[:ranking]
-          {fetched_to, count, ranking}
-      end
-    count = case count do
-      nil -> nil
-      x when x <=0 -> 3
-      x when x < 50 -> x + 5
-      x -> round(x*1.1)
-    end
-    rank = new_rank || old_rank
-    limit = cond do
-      limit -> limit
-      is_nil(rank) -> 10
-      rank >= 0 -> 100
-      rank >= -3 -> 50
-      rank >= -10 -> 20
-      true -> 10
-    end
-    limit = case {count, limit} do
-      {nil, limit} -> limit
-      {x, nil} -> x
-      {x, y} -> min(x, y)
-    end
-    {fetched_to, limit}
-  end
-
   def do_fetch(role, match_type, perf, opts \\ []) do
     global_id = Map.get(role, :global_id)
-    indicators = case role do
-      %{role_id: role_id, zone: zone, server: server} -> api({:role_info, role_id, zone, server})
-      _ -> nil
-    end
-    performances = indicators[:indicator] || []
-    new_perf = case performances |> Enum.filter(fn p -> p[:match_type] == match_type end) do
-      [%{performance: new_perf}] -> new_perf
-      _ -> nil
-    end
-    {fetched_to, limit} = case opts[:mode] || :recent do
-      :recent -> do_fetch_count(new_perf, opts[:limit], Map.get(perf, :fetched_to), Map.get(perf, :ranking))
-      :all -> { new_perf[:total_count] || Map.get(perf, :fetched_to), new_perf[:total_count] || 2000 }
-      # :exact -> { new_perf[:total_count] || Map.get(perf, :fetched_to), opts[:limit] }
-    end
-    fetched_to = fetched_to || Map.get(perf, :fetched_to)
+    fetched_to = Map.get(perf, :fetched_to) || 0
+    # Logger.info("#{inspect(perf)}")
+    limit = opts[:limit] || Map.get(perf, :total_count, 1000) - fetched_to
 
-    Logger.info("[#{match_type}] fetching #{limit} matches of #{global_id} of #{perf[:ranking]} -> #{new_perf[:ranking] || "??"}")
-    if limit == nil do
-      Logger.error("limit should not be null #{performances |> Enum.map(& &1[:type]) |> inspect}\n" <> inspect(indicators))
-    end
-    history = matches(match_type, role, limit) || []
-    do_indicator(indicators, role)
+    Logger.info("[#{match_type}] fetching #{limit} matches of #{global_id} of #{Map.get(perf, :score, "??")}")
+    history = matches(match_type, role, limit)
     new_perf = %{role_id: global_id, match_type: match_type, fetched_to: fetched_to, fetched_at: NaiveDateTime.utc_now}
     new_perf =
       case history |> Enum.drop_while(fn %Model.Match{} -> false; _ -> true end) do
@@ -273,33 +222,30 @@ defmodule Jx3App.Crawler do
           Logger.info("No match fetched for #{global_id}")
           new_perf
       end
-    new_perf = if opts[:mode] == :all do
+    new_perf = if opts[:limit] == nil do
       fetched_count = history |> Enum.filter(fn %Model.Match{} -> true; _ -> false end) |> Enum.count()
       new_perf |> Map.put(:fetched_count, fetched_count)
-    else new_perf end |> IO.inspect(label: "perf")
+    else new_perf end
+    Logger.info("[#{match_type}] fetched #{history |> Enum.count} matches of #{global_id} of #{Map.get(perf, :score2, "??")} -> #{new_perf[:score2]}")
     new_perf |> Model.Query.update_performance |> Utils.unwrap
   end
 
-  def fetch(role, match_type, perf, opts \\ [])
-  def fetch(role, match_type, %{ranking: ranking, fetched_count: fetched_count, fetched_at: last}, opts) do
-    perf = %{ranking: ranking}
+  def fetch(match_type, global_id, opts \\ []) do
+    {role, perf} = Model.Query.get_role(match_type, global_id)
+    perf = if not Utils.time_in?(role.fetched_at, 24, :hour) do
+      indicator(role) |> Map.get(:performances) |> Enum.find(&(Map.get(&1, :match_type) == match_type))
+    else
+      perf
+    end
+    last = Map.get(perf, :fetched_at)
+    score = Map.get(perf, :score)
     cond do
-      opts[:mode] == :setup ->
-        if fetched_count == nil do
-          do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
-        end
-      opts[:mode] == :all and (last == nil or not Utils.time_in?(last, 18, :hour)) -> do_fetch(role, match_type, perf, opts)
-      ranking >= -3 and last == nil -> do_fetch(role, match_type, perf, Keyword.put(opts, :limit, 100))
-      last == nil -> do_fetch(role, match_type, perf, opts)
-      ranking in [-1, -2, -3] and not Utils.time_in?(last, 6, :day) -> do_fetch(role, match_type, perf, opts)
-      ranking > 0 and not Utils.time_in?(last, 18, :hour) -> do_fetch(role, match_type, perf, opts)
-      not Utils.time_in?(last, 7, :day) -> do_fetch(role, match_type, perf, opts)
+      score < 2200 and (last == nil or not Utils.time_in?(last, 6, :day)) ->
+        do_fetch(role, match_type, perf, Keyword.put(opts, :limit, 100))
+      score < 2200 -> nil
+      last == nil or not Utils.time_in?(last, 18, :hour) -> do_fetch(role, match_type, perf, opts)
       true -> nil
     end
-  end
-
-  def fetch(role, match_type, nil, opts) do
-    do_fetch(role, match_type, %{}, Keyword.put(opts, :limit, 100))
   end
 
   def run(opts \\ [mode: :recent]) do
@@ -317,10 +263,10 @@ defmodule Jx3App.Crawler do
     limit = 5000
     roles = Model.Query.get_roles(match_type: match_type, offset: offset, limit: limit)
     if not Enum.empty?(roles) do
-      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, offset+limit, opts) end)
+      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(match_type, Map.get(r, :global_id), opts) end, nil, fn -> do_run(match_type, offset+limit, opts) end)
     else
       top200(match_type)
-      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, 0, opts) end)
+      Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(match_type, Map.get(r, :global_id), opts) end, nil, fn -> do_run(match_type, 0, opts) end)
     end
   end
 

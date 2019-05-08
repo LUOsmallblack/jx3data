@@ -35,6 +35,7 @@ defmodule Jx3App.API do
   end
 
   def _retry_post(retry_times, url, body, option) do
+    Logger.debug("post #{url} #{body}")
     case HTTPoison.post(url, body, option) do
       {:error, err} ->
         if retry_times > 0 do
@@ -42,7 +43,9 @@ defmodule Jx3App.API do
         else
           {:error, err}
         end
-      {:ok, resp} -> {:ok, resp}
+      {:ok, resp} ->
+        # Logger.debug("post #{url} #{body} => #{Map.get(resp, :body)}")
+        {:ok, resp}
     end
   end
 

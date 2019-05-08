@@ -13,11 +13,12 @@ defmodule Jx3App.Model.Role do
     field :camp, :string
     field :zone, :string
     field :server, :string
+    field :fetched_at, :naive_datetime_usec
     belongs_to :person, Person, type: :string, references: :person_id
     has_many :performances, RolePerformance, foreign_key: :role_id
     timestamps(type: :naive_datetime_usec)
 
-    @permitted ~w(role_id passport_id name force body_type camp zone server person_id)a
+    @permitted ~w(role_id passport_id name force body_type camp zone server fetched_at person_id)a
 
     def changeset(role, change \\ :empty) do
       change = change
