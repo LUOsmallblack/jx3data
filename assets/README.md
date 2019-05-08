@@ -1,6 +1,7 @@
 # Install compiler
 ```
-# pacman -S opam
+# pacman -S opam base-devel
+$ # opam init
 $ opam switch create 4.02.3+buckle-1
 $ eval $(opam env)
 $ # echo prefix=~/.npm > ~/.npmrc
@@ -42,14 +43,10 @@ $ yarn add bootstrap jquery popper.js
 $ opam switch 4.02.3+buckle-1
 $ eval $(opam env)
 $ yarn build # start
+$ yarn rollup
 ```
 
-# Watch
-
+# Deploy
 ```
-npm run watch
+ln -s ../../../../assets _build/prod/rel/jx3app/
 ```
-
-
-# Editor
-If you use `vscode`, Press `Windows + Shift + B` it will build automatically
