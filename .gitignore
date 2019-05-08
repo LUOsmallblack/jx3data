@@ -47,3 +47,4 @@ vendor
 .idea
 .ipynb_checkpoints
 *.iml
+.elixir_ls

@@ -27,6 +27,7 @@ defmodule Jx3App.Model.RolePerformance do
   def fix_ranking(%{ranking: r} = change) do
     ranking = cond do
       is_integer(r) -> r
+      "-" -> nil
       String.at(r, -1) == "%" -> r |> String.trim_trailing("%") |> String.to_integer |> Kernel.-
       true -> r |> String.to_integer
     end

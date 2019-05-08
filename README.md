@@ -43,7 +43,7 @@ mix test
 # release
 MIX_ENV=prod mix release
 # run
-_build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all
+_build/prod/rel/jx3app/bin/jx3app start --role all --crawler-mode all --crawler-type 2c,3c,5c,3m
 ```
 
 ## Useful commands

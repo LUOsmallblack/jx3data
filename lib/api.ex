@@ -291,8 +291,8 @@ defmodule Jx3App.API do
     end
   end
 
-  def handle(:corp, {global_id}, token) do
-    {:ok, d} = post("https://m.pvp.xoyo.com/3c/mine/arena/get-crops-by-global-id", %{globalId: global_id}, token)
+  def handle(:corp, {match_type, global_id}, token) do
+    {:ok, d} = post("https://m.pvp.xoyo.com/#{match_type}/mine/arena/get-crops-by-global-id", %{globalId: global_id}, token)
     Enum.map(d, fn c -> %{
       corp_id: c |> Map.get("corpsId") |> String.to_integer,
       pvp_type: c |> Map.get("pvpType"),
@@ -317,7 +317,7 @@ defmodule Jx3App.API do
     d |> Enum.map(fn m ->
       %{
         match_id: m |> Map.get("match_id"),
-        match_type: (m |> Map.get("pvp_type") |> Integer.to_string) <> Utils.get_zone_suffix(m |> Map.get("zone")),
+        match_type: match_type,
         global_id: m |> Map.get("global_role_id"),
         avg_grade: m |> Map.get("avg_grade"),
         start_time: m |> Map.get("start_time"),

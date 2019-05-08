@@ -12,7 +12,7 @@ defmodule Jx3App.Crawler do
     def init(opts) do
       children = Enum.map(opts[:match_types], fn t ->
         opts = Keyword.put(opts, :match_type, t)
-        worker(Jx3App.Crawler, [opts], restart: :transient)
+        worker(Jx3App.Crawler, [opts], restart: :transient, id: t)
       end)
       supervise(children, strategy: :one_for_one)
     end
@@ -90,7 +90,7 @@ defmodule Jx3App.Crawler do
     GenServer.call(API, req)
   end
 
-  def top200(match_type \\ "3c") do
+  def top200(match_type) do
     top = api({:top200, match_type})
     if top do
       top |> Enum.map(fn %{person_info: _p, role_info: r} = a ->
@@ -177,7 +177,7 @@ defmodule Jx3App.Crawler do
   end
 
   @match_default_size 100
-  def matches(match_type \\ "3c", %{global_id: global_id}, size \\ @match_default_size) do
+  def matches(match_type, %{global_id: global_id}, size \\ @match_default_size) do
     size = size || @match_default_size
     block_size = @match_default_size*2
     block_count = max(div(size-1, block_size)-1, 0)
@@ -252,7 +252,7 @@ defmodule Jx3App.Crawler do
     end
     fetched_to = fetched_to || Map.get(perf, :fetched_to)
 
-    Logger.info("fetching #{limit} matches of #{global_id} of #{perf[:ranking]} -> #{new_perf[:ranking] || "??"}")
+    Logger.info("[#{match_type}] fetching #{limit} matches of #{global_id} of #{perf[:ranking]} -> #{new_perf[:ranking] || "??"}")
     if limit == nil do
       Logger.error("limit should not be null #{performances |> Enum.map(& &1[:type]) |> inspect}\n" <> inspect(indicators))
     end
@@ -288,7 +288,7 @@ defmodule Jx3App.Crawler do
         if fetched_count == nil do
           do_fetch(role, match_type, %{ranking: ranking}, Keyword.put(opts, :mode, :all))
         end
-      opts[:mode] == :all -> do_fetch(role, match_type, perf, opts)
+      opts[:mode] == :all and (last == nil or not Utils.time_in?(last, 18, :hour)) -> do_fetch(role, match_type, perf, opts)
       ranking >= -3 and last == nil -> do_fetch(role, match_type, perf, Keyword.put(opts, :limit, 100))
       last == nil -> do_fetch(role, match_type, perf, opts)
       ranking in [-1, -2, -3] and not Utils.time_in?(last, 6, :day) -> do_fetch(role, match_type, perf, opts)
@@ -306,7 +306,7 @@ defmodule Jx3App.Crawler do
     {match_types, opts} = Keyword.pop(opts, :match_types)
     {match_type, opts} = Keyword.pop(opts, :match_type)
     case {match_type, match_types} do
-      {nil, nil} -> do_run("3c", opts)
+      {nil, nil} -> do_run("3m", opts)
       {nil, _} -> Enum.map(match_types, fn i -> do_run(i, opts) end)
       _ -> do_run(match_type, opts)
     end
@@ -319,6 +319,7 @@ defmodule Jx3App.Crawler do
     if not Enum.empty?(roles) do
       Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, offset+limit, opts) end)
     else
+      top200(match_type)
       Jx3App.Task.start_task(name, roles, fn {r, p} -> fetch(r, match_type, p, opts) end, nil, fn -> do_run(match_type, 0, opts) end)
     end
   end

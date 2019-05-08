@@ -18,9 +18,9 @@ defmodule Jx3App.Model.Repo.Migrations.CreateSparkRole do
   def change do
     role = ~s["#{dbname()}_reader"]
     spark_role = ~s["apache-spark"]
-    match_schemas = ~w[match_2c match_3c match_5c match_2m match_3m match_5m]a |> Enum.join(", ")
+    match_schemas = ~w[match_2c match_3c match_5c match_3m]a |> Enum.join(", ")
     create_role role, true
-    create_role role, false
+    create_role spark_role, false
     # https://stackoverflow.com/questions/19045149/error-permission-denied-for-schema-user1-gmail-com-at-character-46
     execute_all """
       GRANT SELECT ON ALL TABLES IN SCHEMA public, #{match_schemas} TO #{role};

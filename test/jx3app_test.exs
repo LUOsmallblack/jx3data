@@ -3,6 +3,6 @@ defmodule Jx3AppTest do
   doctest Jx3App
 
   test "top200" do
-    GenServer.call(API.lookup(), {:top200, "3d"})
+    GenServer.call(API.lookup(), {:top200, "3m"})
   end
 end

@@ -6,3 +6,5 @@ ivy.tmp.xml
 lib
 gen
 Manifest.toml
+target/
+*.ipynb
