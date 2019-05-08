@@ -34,13 +34,25 @@ defmodule Jx3App.API do
     Map.put(d, :sign, s)
   end
 
+  def _retry_post(retry_times, url, body, option) do
+    case HTTPoison.post(url, body, option) do
+      {:error, err} ->
+        if retry_times > 0 do
+          _retry_post(retry_times-1, url, body, option)
+        else
+          {:error, err}
+        end
+      {:ok, resp} -> {:ok, resp}
+    end
+  end
+
   def _post(url, body, option) do
     body = sign_data body
     option = Keyword.put_new(option, :"Content-Type", "application/json")
     case Jason.encode body do
       {:error, err} -> {:error, {:encode, err}}
       {:ok, body} ->
-        case HTTPoison.post(url, body, option) do
+        case _retry_post(2, url, body, option) do
           {:error, err} -> {:error, {:post, err}}
           {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
             case Jason.decode body do
