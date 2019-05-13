@@ -36,7 +36,7 @@ defmodule Jx3App.API do
 
   def _retry_post(retry_times, url, body, option) do
     Logger.debug("post #{url} #{body}")
-    case HTTPoison.post(url, body, option) do
+    case HTTPoison.post(url, body, option, ssl: [{:versions, [:'tlsv1.2']}]) do
       {:error, err} ->
         if retry_times > 0 do
           _retry_post(retry_times-1, url, body, option)
